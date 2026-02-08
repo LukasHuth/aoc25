@@ -11,6 +11,7 @@ cd ${DAY_PATH}
 
 echo "▶ Building day $DAY"
 
-docker buildx build --target test -t "aoc-day:day${DAY}-test" .
-docker buildx build -t "aoc-day:day${DAY}" .
+docker buildx build --no-cache --target test -t "aoc-day:day${DAY}-test" .
+docker buildx build --target part1 -t "aoc-day:day${DAY}-part1" .
+docker buildx build --target part2 -t "aoc-day:day${DAY}-part2" .
 
