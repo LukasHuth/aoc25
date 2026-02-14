@@ -7,8 +7,8 @@ pub fn main() !void {
     _ = args.skip();
     const day = args.next() orelse "";
     if(std.mem.eql(u8, day[0..], "2")) {
-        day6.part2();
+        try day6.part2(std.heap.page_allocator);
     } else {
-        day6.part1();
+        try day6.part1(std.heap.page_allocator, false);
     }
 }

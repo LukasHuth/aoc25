@@ -1,61 +1,71 @@
 const std = @import("std");
-pub fn splitIntoLines(str: []u8, alloc: std.mem.Allocator) !std.ArrayList([]const u8) {
+
+pub fn splitIntoLines(str: []u8, alloc: std.mem.Allocator) ![][]const u8 {
     var array = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    defer array.deinit(alloc);
     var it = std.mem.splitScalar(u8, str, '\n');
     while(it.next()) |next| {
         const value = std.mem.trim(u8, next, " \t\n\r");
         if(value.len == 0) continue;
         try array.append(alloc, value);
     }
-    return array;
+    const result = try alloc.alloc([]const u8, array.items.len);
+    std.mem.copyForwards([]const u8, result, array.items);
+    return result;
 }
 test "test line splitting" {
     const alloc = std.testing.allocator;
     const expected = [_][]const u8 { "a", "b" };
     const inputstring = try std.fmt.allocPrint(alloc, "a\n \n b", .{});
     defer alloc.free(inputstring);
-    var actual = try splitIntoLines(inputstring, alloc);
-    defer actual.deinit(alloc);
-    try std.testing.expectEqual(expected.len, actual.items.len);
+    const actual = try splitIntoLines(inputstring, alloc);
+    defer alloc.free(actual);
+    try std.testing.expectEqual(expected.len, actual.len);
     for (0..2) |i| {
-        try std.testing.expectEqualSlices(u8, expected[i], actual.items[i]);
+        try std.testing.expectEqualSlices(u8, expected[i], actual[i]);
     }
 }
 
-pub fn splitLine(str: []u8, alloc: std.mem.Allocator) !std.ArrayList([]const u8) {
+pub fn splitLine(str: []const u8, alloc: std.mem.Allocator) ![][]const u8 {
     var array = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    defer array.deinit(alloc);
     var it = std.mem.splitScalar(u8, str, ' ');
     while(it.next()) |next| {
         const value = std.mem.trim(u8, next, " \t\n\r");
         if(value.len == 0) continue;
         try array.append(alloc, value);
     }
-    return array;
+    const result = try alloc.alloc([]const u8, array.items.len);
+    std.mem.copyForwards([]const u8, result, array.items);
+    return result;
 }
 test "test line splitting 2" {
     const alloc = std.testing.allocator;
     const expected = [_][]const u8 { "a", "b" };
     const inputstring = try std.fmt.allocPrint(alloc, "   a    b     ", .{});
     defer alloc.free(inputstring);
-    var actual = try splitLine(inputstring, alloc);
-    defer actual.deinit(alloc);
-    try std.testing.expectEqual(expected.len, actual.items.len);
+    const actual = try splitLine(inputstring, alloc);
+    defer alloc.free(actual);
+    try std.testing.expectEqual(expected.len, actual.len);
     for (0..2) |i| {
-        try std.testing.expectEqualSlices(u8, expected[i], actual.items[i]);
+        try std.testing.expectEqualSlices(u8, expected[i], actual[i]);
     }
 }
 
-pub fn convertStringsToNumbers(strs: [][]u8, alloc: std.mem.Allocator) !std.ArrayList(u32) {
-    var out = try std.ArrayList(u32).initCapacity(alloc, strs.len);
+pub fn convertStringsToNumbers(strs: [][]const u8, alloc: std.mem.Allocator, comptime return_type: type) ![]return_type {
+    var out = try std.ArrayList(return_type).initCapacity(alloc, strs.len);
+    defer out.deinit(alloc);
     for (strs) |str| {
-        try out.append(alloc, try std.fmt.parseInt(u32, str, 10));
+        try out.append(alloc, try std.fmt.parseInt(return_type, str, 10));
     }
-    return out;
+    const result = try alloc.alloc(return_type, out.items.len);
+    std.mem.copyForwards(return_type, result, out.items);
+    return result;
 }
 test "strings to numbers" {
     const alloc = std.testing.allocator;
     const expected = [_]u32 { 123, 69 };
-    var input = try std.ArrayList([]u8).initCapacity(alloc, 2);
+    var input = try std.ArrayList([]const u8).initCapacity(alloc, 2);
     defer input.deinit(alloc);
     const input0 = try std.fmt.allocPrint(alloc, "123", .{});
     defer alloc.free(input0);
@@ -63,9 +73,9 @@ test "strings to numbers" {
     defer alloc.free(input1);
     try input.append(alloc, input0);
     try input.append(alloc, input1);
-    var actual = try convertStringsToNumbers(input.items, alloc);
-    defer actual.deinit(alloc);
-    try std.testing.expectEqualSlices(u32, expected[0..], actual.items);
+    const actual = try convertStringsToNumbers(input.items, alloc, u32);
+    defer alloc.free(actual);
+    try std.testing.expectEqualSlices(u32, expected[0..], actual);
 }
 
 pub fn readFile(alloc: std.mem.Allocator) ![]u8 {
