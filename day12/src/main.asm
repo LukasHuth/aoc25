@@ -11,18 +11,24 @@ extern file_utility_read_file
 extern file_utility_free_file_content
 
 _start:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+
   lea rdi, [rel filename]
   mov rsi, filename_len
   call file_utility_read_file
-  push [rax]
-  push [rax + 8]
+  mov rcx, [rax]
+  mov [rbp - 8], rcx
+  mov rcx, [rax + 8]
+  mov [rbp - 16], rcx
 
-  mov rdi, [rsp]
-  mov rdi, [rsp + 8]
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 16]
   call utils_print
 
-  mov rdi, [rsp]
-  mov rsi, [rsp + 8]
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 16]
   call file_utility_free_file_content
 
   mov rdi, 0
