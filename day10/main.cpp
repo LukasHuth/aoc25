@@ -6,15 +6,19 @@
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+typedef std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
+                   uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
+                   uint32_t, uint32_t, uint32_t, uint32_t>
+    JoltageMeter;
 
 class Machine {
 private:
   uint32_t expected_lights;
   std::vector<uint32_t> buttonWiring;
-  std::vector<int> joltageRequirements;
+  JoltageMeter joltageRequirements;
 
 public:
   uint32_t findMoves();
@@ -110,13 +114,36 @@ uint32_t getButtonMask(std::string_view button) {
   return result;
 }
 
+JoltageMeter getJoltageValues(std::string_view button) {
+  uint32_t result = 0;
+  uint32_t meterValues[16] = {0};
+  uint8_t i = 0;
+  while (!button.empty()) {
+    size_t pos = button.find(',');
+    std::string_view target = button.substr(0, pos);
+    uint32_t value = std::stoi(std::string(target));
+    meterValues[i++] = value;
+    if (pos == std::string_view::npos)
+      break;
+    button.remove_prefix(pos + 1);
+  }
+  JoltageMeter joltageMeter = {
+      meterValues[0],  meterValues[1],  meterValues[2],  meterValues[3],
+      meterValues[4],  meterValues[5],  meterValues[6],  meterValues[7],
+      meterValues[8],  meterValues[9],  meterValues[10], meterValues[11],
+      meterValues[12], meterValues[13], meterValues[14], meterValues[15]};
+  return joltageMeter;
+}
+
 Machine::Machine(std::string_view input) {
   int32_t light_split = input.find(' ');
   std::string_view lights = input.substr(0, light_split);
   int32_t joltage_split = input.find_last_of(' ');
   std::string_view buttons =
       input.substr(light_split + 1, joltage_split - light_split - 1);
-  // std::string_view joltage = input.substr(joltage_split);
+  std::string_view joltage = input.substr(joltage_split);
+  joltage.remove_prefix(2);
+  joltage.remove_suffix(1);
   this->expected_lights = 0;
   uint8_t i = 0;
   for (char c : lights) {
@@ -134,4 +161,5 @@ Machine::Machine(std::string_view input) {
       break;
     buttons.remove_prefix(pos + 1);
   }
+  this->joltageRequirements = getJoltageValues(joltage);
 }
