@@ -1,0 +1,8 @@
+SET
+CREATE TABLE
+INSERT 0 1
+    message    
+---------------
+ Hello, World2
+(1 row)
+
