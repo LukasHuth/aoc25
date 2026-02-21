@@ -4,12 +4,12 @@ OUT_DIR := out
 
 # Tools
 AS_NASM := nasm
-AS_GAS := nasm
+AS_GAS := as
 LD := ld
 
 # Flags
 ASFLAGS_NASM := -f elf64
-ASFLAGS_GAS := -f elf64
+ASFLAGS_GAS := --64
 LDFLAGS := -m elf_x86_64
 
 TARGET := $(OUT_DIR)/day12
