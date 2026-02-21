@@ -185,6 +185,9 @@ utils_free_heap:
 # Arguments:
 # rdi = requested minimum size
 #------------------------------------------------------------------------------
+# Info: heap_offset should only be edited by malloc
+# Heap is always page aligned since it is from mmap
+#------------------------------------------------------------------------------
 utils_malloc:
   mov heap(%rip), %rax
   add heap_offset(%rip), %rax
