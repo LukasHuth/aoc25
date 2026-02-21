@@ -18,7 +18,7 @@ until pg_isready -U runner -d aoc > /dev/null; do
   sleep 0.5
 done
 '
-docker exec ${containerIdTest1} sh -c "psql -U runner -d aoc -f /app/part1.sql > /app/output1.txt"
+docker exec ${containerIdTest1} sh -c "psql -U runner -d aoc -v RN_LIMIT=10 -f /app/part1.sql > /app/output1.txt"
 docker exec ${containerIdTest1} diff -u /app/output1.txt /app/expected_part1.txt
 docker stop ${containerIdTest1} > /dev/null
 # end test
@@ -42,7 +42,7 @@ echo "▶ Running Part1"
 containerIdPart1=$(docker run --rm -d aoc-day:day${DAY}-part1)
 trap 'docker stop ${containerIdPart1} > /dev/null' EXIT
 sleep 2
-docker exec ${containerIdPart1} psql -U runner -d aoc -f /app/part1.sql
+docker exec ${containerIdPart1} psql -U runner -d aoc -v RN_LIMIT=1000 -f /app/part1.sql
 docker stop ${containerIdPart1} > /dev/null
 # end part1
 
