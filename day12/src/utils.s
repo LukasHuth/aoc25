@@ -7,6 +7,7 @@
 .global utils_malloc
 .global utils_stoi
 .global utils_splitstring
+.global utils_strlen
 
 .section .data
 heap:
@@ -310,5 +311,34 @@ utils_splitstring:
 # Returns: The length of the string
 #------------------------------------------------------------------------------
 utils_strlen:
-  # TODO: Implement with SSE
+  mov %rdi, %rcx # load str ptr into rcx
+  and $0xF, %rcx # mask rcx to 0-15
+  mov $0x10, %rdx 
+  sub %rcx, %rdx 
+  mov %rdx, %rcx # rcx = 16 - (str & 0xF)
+  xor %rax, %rax # clear rax
+  .LalignmentLoop:
+  movzbq (%rdi, %rax, 1), %rdx # load char at str[rax] -> rdx
+  test %dl, %dl # test rdx
+  jz .Lexit  # jump to exit if 0 is hit
+  inc %rax # rax++
+  cmp %rax, %rcx # rax < rcx repeat
+  jl .LalignmentLoop
+
+  # SSE start
+  mov %rdi, %rax # save str ptr in rax
+  add %rcx, %rdi # advance str ptr by the amount needed 
+  xor %rcx, %rcx
+  pxor %xmm0, %xmm0 # initiate the "compare" value to \0
+.Lloop:
+  movdqa (%rdi), %xmm1 # load the next 16 bytes (alignment required. This should be because of the earlier code)
+  pcmpistri $0x08, %xmm0, %xmm1 # extract first index that is equal into 
+  jc .Lfound
+  add $16, %rdi # advance by 16
+  jmp .Lloop
+.Lfound:
+  add %rcx, %rdi # add index to get end ptr
+  sub %rax, %rdi # end - start to get size
+  mov %rdi, %rax # return size
+.Lexit:
   ret
