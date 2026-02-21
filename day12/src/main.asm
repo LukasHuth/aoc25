@@ -48,10 +48,10 @@ _start:
   jge .argv_loop
   .argv_loop_end:
   
-  mov rdi, [rbp - 16]
-  mov rdi, [rdi + 8]
-  mov rsi, 5
-  call utils_print
+  ; mov rdi, [rbp - 16]
+  ; mov rdi, [rdi + 8]
+  ; mov rsi, 5
+  ; call utils_print
 
   lea rdi, [rel filename]
   mov rsi, filename_len

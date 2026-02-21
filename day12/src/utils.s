@@ -6,6 +6,7 @@
 .global utils_free_heap
 .global utils_malloc
 .global utils_stoi
+.global utils_splitstring
 
 .section .data
 heap:
@@ -23,6 +24,9 @@ heap_free_failed_len = . - heap_free_failed - 1
 guard_page_creation_failed:
   .asciz "Failed to create a guard page\n"
 guard_page_creation_failed_len = . - guard_page_creation_failed - 1
+stoi_failed:
+  .asciz "Failed to parse number\n"
+stoi_failed_len = . - stoi_failed - 1
 heap_page_size = 4096
 
 .section .text
@@ -238,4 +242,73 @@ _create_guard:
   pop %rsi
   pop %rdi
   pop %rax
+  ret
+
+#------------------------------------------------------------------------------
+# stoi - String to Integer
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+# rsi = length
+#------------------------------------------------------------------------------
+# Returns: The number extracted from the string
+#------------------------------------------------------------------------------
+# Panics: When string is empty or unknown character is read
+#------------------------------------------------------------------------------
+utils_stoi:
+  test %rsi, %rsi
+  jz 2f
+  xor %rax, %rax
+  xor %r8, %r8
+  xor %r9, %r9
+  1:
+  movzbq (%rdi, %r8, 1), %r9
+  subb $'0', %r9b
+  test %r9b, %r9b
+  js 2f
+  cmp %r9b, 9
+  jg 2f
+  lea (%rax, %rax, 4), %rax # rax *= 5
+  lea (%r9, %rax, 2), %rax # rax *= 2 rax += (char - '0')
+  inc %r8
+  cmp %rsi, %r8
+  jl 1b
+  jmp 1f
+  2:
+
+  lea stoi_failed(%rip), %rdi
+  mov $stoi_failed_len, %rsi
+  mov %rax, %rdx
+  neg %rdx
+  call utils_panic
+
+  1:
+  ret
+
+#------------------------------------------------------------------------------
+# Split String - Splits a string at the specified delimiter
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string:0
+# rsi = ptr to store the string vector ptr
+#------------------------------------------------------------------------------
+# Returns: The amount of elements, the string got split into
+#------------------------------------------------------------------------------
+utils_splitstring:
+  push %rbp
+  mov %rsp, %rbp
+  # TODO: implement with SSE
+  leave
+  ret
+
+#------------------------------------------------------------------------------
+# String length - returns the number of chars until \0 is read
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+#------------------------------------------------------------------------------
+# Returns: The length of the string
+#------------------------------------------------------------------------------
+utils_strlen:
+  # TODO: Implement with SSE
   ret
