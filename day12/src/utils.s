@@ -291,14 +291,101 @@ utils_stoi:
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = string:0
-# rsi = ptr to store the string vector ptr
+# rsi = delimiter
+# rdx = ptr to store the string vector ptr
 #------------------------------------------------------------------------------
 # Returns: The amount of elements, the string got split into
 #------------------------------------------------------------------------------
+.type utils_splitstring,@function
 utils_splitstring:
   push %rbp
   mov %rsp, %rbp
-  # TODO: implement with SSE
+  push %rdi # 0 = string
+  push %rsi # 1 = delimiter
+  push %rdx # 2 = vec return ptr
+
+  call utils_strlen
+  push %rax # 3 = str len
+
+  mov 0(%rbp), %rdi
+  mov 8(%rbp), %rsi
+  call utils_count_scalar
+  push %rax # 4 = delimiter occurences
+
+  # TODO: use counted delimiter to alloc vector for each part, split and save (with null terminator)
+
+  leave
+  ret
+
+utils_count_scalar:
+  push %rbp
+  mov %rsp, %rbp
+  push %rdi
+  push %rsi
+  call utils_strlen
+  push %rax
+
+  # count delimiters
+  xor %rcx, %rcx
+
+  # fill delimiter SSE register
+  mov 16(%rbp), %r9 # load str len
+  mov 8(%rbp), %rax # load delimiter
+  mov 0(%rbp), %rdi # load str
+  mov 0(%rbp), %rsi # load str
+  mov %rdi, %r10 # load end
+  sub %rsi, %r10 # (end - start) = checked_len
+  add $15, %r10
+  cmp %r9, %r10 # strlen <= checked_len + 15; end loop
+  jle .LcountLoopEnd
+  movzx %sil, %rsi # clear upper bytes
+  pxor %xmm1, %xmm1
+  movd %esi, %xmm1 # load esi into xmm1
+  pxor %xmm2, %xmm2
+  pshufb %xmm2, %xmm1 # use the indices in xmm2 to shuffle xmm1, eferything is 0 in xmm2 therefore everything in xmm1 = xmm1[0]
+
+.LcountLoop:
+  movdqu (%rdi), %xmm0 # load first 16 bytes
+  pcmpistrm $00, %xmm0, %xmm1 # strcmp bytes with equ any and store mask in xmm0
+  jnc .LcountLoopCheck # c is on when hit, if nothing is hit, just check whether we reached the string end
+  xor %r8, %r8
+  pmovmskb %xmm0, %r8d # load the mask from xmm0 into r8
+  popcnt %r8d, %r8d # count active bits and store in r8
+  add %r8, %rcx # add counted bits to the counter
+.LcountLoopCheck:
+  mov %rdi, %r10 # load end
+  sub %rsi, %r10 # (end - start) = checked_len
+  add $15, %r10
+  cmp %r9, %r10 # strlen <= checked_len + 15; end loop
+  jle .LcountLoopEnd
+  add $16, %rdi
+  jmp .LcountLoop
+.LcountLoopEnd:
+
+  mov %rdi, %r10 # load end
+  sub %rsi, %r10 # (end - start) = checked_len
+  sub %r10, %r9 # missing bytes
+  test %r10, %r10
+  jz .LtailCountLoopEnd # if missing bytes is 0 end
+.LtailCountLoop: # order doesn't matter
+  movzbq (%rdi, %r10, 1), %rdx # load char at str[r10] -> rdx
+  cmp %dl, %al
+  jne .LtailCountLoopCheck # if not delimier repeat loop if neccesarry
+  inc %rcx
+.LtailCountLoopCheck:
+  dec %r10
+  test %r10, %r10
+  jz .LtailCountLoopEnd # if missing bytes is 0 end
+  jmp .LtailCountLoop
+.LtailCountLoopEnd:
+  
+  # AVX-512 alternative
+  # r10 = missing bytes
+  # r9 = (1 << missingbytes) - 1
+  # kmovw %r9w, %k1
+  # vmovdqu8 (%rdi), %xmm0{%k1}{z}
+
+  mov %rcx, %rax
   leave
   ret
 
