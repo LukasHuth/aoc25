@@ -1,6 +1,9 @@
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <queue>
 #include <stdlib.h>
 #include <string>
@@ -9,10 +12,8 @@
 #include <unordered_set>
 #include <vector>
 
-typedef std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-                   uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
-                   uint32_t, uint32_t, uint32_t, uint32_t>
-    JoltageMeter;
+#define JoltageSize 10
+typedef std::array<uint32_t, JoltageSize> JoltageMeter;
 
 class Machine {
 private:
@@ -21,6 +22,7 @@ private:
   JoltageMeter joltageRequirements;
 
 public:
+  uint32_t findJoltageButtons();
   uint32_t findMoves();
   Machine(std::string_view);
 };
@@ -39,7 +41,19 @@ void part1() {
   std::cout << result << std::endl;
 }
 
-void part2() {}
+void part2() {
+  std::ifstream InputFile("input.txt");
+  std::string input;
+  std::vector<Machine> machines;
+  while (std::getline(InputFile, input)) {
+    machines.push_back(Machine(input));
+  }
+  uint32_t result = 0;
+  for (auto machine : machines) {
+    result += machine.findJoltageButtons();
+  }
+  std::cout << result << std::endl;
+}
 
 int main(int argc, char **argv) {
   if (argc >= 2 && *argv[1] == '2') {
@@ -67,6 +81,57 @@ struct TupleHash {
     return seed;
   }
 };
+
+struct TupleHashJoltage {
+  std::size_t operator()(const JoltageMeter &t) const {
+    uint32_t a = t.at(0);
+    std::size_t h1 = std::hash<uint32_t>{}(a);
+    std::size_t seed = h1;
+    for (uint8_t i = 1; i < JoltageSize; i++) {
+      uint32_t v = t.at(i);
+      std::size_t h = std::hash<unsigned>{}(v);
+      seed ^= h + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    return seed;
+  }
+};
+
+uint32_t Machine::findJoltageButtons() {
+  std::unordered_set<JoltageMeter, TupleHashJoltage> lookup_set;
+  uint32_t result = 0;
+  std::queue<std::tuple<JoltageMeter, uint32_t, uint32_t>> moves;
+  lookup_set.insert(JoltageMeter());
+  for (uint32_t modification : this->buttonWiring) {
+    moves.push({JoltageMeter(), modification, 1});
+  }
+  while (!moves.empty()) {
+    std::tuple<JoltageMeter, uint32_t, uint32_t> entry = moves.front();
+    moves.pop();
+    JoltageMeter state = std::get<0>(entry);
+    uint32_t modifier = std::get<1>(entry);
+    uint32_t depth = std::get<2>(entry);
+    JoltageMeter newState;
+    bool invalid = false;
+    for (uint8_t i = 0; i < JoltageSize; i++) {
+      newState[i] = state[i] + ((modifier >> i) & 1);
+      if (newState[i] > this->joltageRequirements[i])
+        invalid = true;
+    }
+    if (invalid)
+      continue;
+    state = newState;
+    if (state == this->joltageRequirements)
+      return depth;
+    depth++;
+    if (!lookup_set.insert(state).second)
+      continue;
+    for (uint32_t modification : this->buttonWiring) {
+      moves.push({state, modification, depth});
+    }
+  }
+  return result;
+}
 
 uint32_t Machine::findMoves() {
   std::unordered_set<std::tuple<uint32_t, uint32_t, uint32_t>, TupleHash>
@@ -116,7 +181,7 @@ uint32_t getButtonMask(std::string_view button) {
 
 JoltageMeter getJoltageValues(std::string_view button) {
   uint32_t result = 0;
-  uint32_t meterValues[16] = {0};
+  uint32_t meterValues[JoltageSize] = {0};
   uint8_t i = 0;
   while (!button.empty()) {
     size_t pos = button.find(',');
@@ -127,11 +192,8 @@ JoltageMeter getJoltageValues(std::string_view button) {
       break;
     button.remove_prefix(pos + 1);
   }
-  JoltageMeter joltageMeter = {
-      meterValues[0],  meterValues[1],  meterValues[2],  meterValues[3],
-      meterValues[4],  meterValues[5],  meterValues[6],  meterValues[7],
-      meterValues[8],  meterValues[9],  meterValues[10], meterValues[11],
-      meterValues[12], meterValues[13], meterValues[14], meterValues[15]};
+  JoltageMeter joltageMeter;
+  std::copy(std::begin(meterValues), std::end(meterValues),joltageMeter.begin());
   return joltageMeter;
 }
 
