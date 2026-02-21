@@ -65,12 +65,12 @@ string_utility_count_scalar:
   vmovd %esi, %xmm1 
   vpbroadcastb %xmm1, %ymm1 # copy lowest byte everywhere
   xor %r8, %r8
+  mov $-1, %r10d # create extraction mask everything (32 bytes)
+  kmovq %r10, %k1 # load mask into mask reg
 .Lymm_loop:
   cmp $32, %r9
   jb .Ltail_mask # if remaining < 32 do masked loading
 
-  mov $-1, %r10d # create extraction mask everything (32 bytes)
-  kmovq %r10, %k1 # load mask into mask reg
   vmovdqu8 (%rdi), %ymm0{%k1}{z} # load with mask from mem
   vpcmpeqb %ymm1, %ymm0, %ymm0 # find equal bytes and store mask in ymm0
   vpmovmskb %ymm0, %r8d # laod mask into r8d
@@ -112,35 +112,19 @@ string_utility_count_scalar:
 #------------------------------------------------------------------------------
 .type string_utility_strlen,@function
 string_utility_strlen:
-  mov %rdi, %rcx # load str ptr into rcx
-  and $0xF, %rcx # mask rcx to 0-15
-  mov $0x10, %rdx 
-  sub %rcx, %rdx 
-  mov %rdx, %rcx # rcx = 16 - (str & 0xF)
-  xor %rax, %rax # clear rax
-  .LalignmentLoop:
-  movzbq (%rdi, %rax, 1), %rdx # load char at str[rax] -> rdx
-  test %dl, %dl # test rdx
-  jz .Lexit  # jump to exit if 0 is hit
-  inc %rax # rax++
-  cmp %rax, %rcx # rax < rcx repeat
-  jl .LalignmentLoop
-
-  # SSE start
-  mov %rdi, %rax # save str ptr in rax
-  add %rcx, %rdi # advance str ptr by the amount needed 
   xor %rcx, %rcx
-  pxor %xmm0, %xmm0 # initiate the "compare" value to \0
-.Lloop:
-  movdqa (%rdi), %xmm1 # load the next 16 bytes (alignment required. This should be because of the earlier code)
-  pcmpistri $0x08, %xmm0, %xmm1 # extract first index that is equal into 
-  jc .Lfound
-  add $16, %rdi # advance by 16
-  jmp .Lloop
-.Lfound:
-  add %rcx, %rdi # add index to get end ptr
-  sub %rax, %rdi # end - start to get size
-  mov %rdi, %rax # return size
-.Lexit:
+  xor %r8, %r8
+  vpxor %ymm1, %ymm1, %ymm1
+.Lymm_Loop:
+  vmovdqu (%rdi, %rcx), %ymm0
+  vpcmpeqb %ymm1, %ymm0, %ymm0
+  vpmovmskb %ymm0, %r8d
+  test %r8, %r8
+  jnz .Lymm_End
+  add $32, %rcx
+  jmp .Lymm_Loop
+.Lymm_End:
+  tzcnt %r8, %rax
+  add %rcx, %rax
   ret
 
