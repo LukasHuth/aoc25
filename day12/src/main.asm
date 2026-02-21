@@ -9,11 +9,16 @@ extern utils_print
 extern utils_exit
 extern file_utility_read_file
 extern file_utility_free_file_content
+extern utils_init_heap
+extern utils_free_heap
 
 _start:
   push rbp
   mov rbp, rsp
   sub rsp, 16
+  
+  mov rdi, 128
+  call utils_init_heap
 
   lea rdi, [rel filename]
   mov rsi, filename_len
@@ -30,6 +35,8 @@ _start:
   mov rdi, [rbp - 8]
   mov rsi, [rbp - 16]
   call file_utility_free_file_content
+
+  call utils_free_heap
 
   mov rdi, 0
   call utils_exit
