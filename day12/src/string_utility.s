@@ -60,61 +60,45 @@ string_utility_count_scalar:
   mov -24(%rbp), %r9 # load str len
   mov -16(%rbp), %rax # load delimiter
   mov -8(%rbp), %rdi # load str
-  mov -8(%rbp), %rsi # load str
-  mov %rdi, %r10 # load end
-  sub %rsi, %r10 # (end - start) = checked_len
-  add $15, %r10
-  cmp %r9, %r10 # strlen <= checked_len + 15; end loop
-  jge .LcountLoopEnd
-  movzx %al, %rax # clear upper bytes
-  pxor %xmm1, %xmm1
-  movd %eax, %xmm1 # load esi into xmm1
-  pxor %xmm2, %xmm2
-  pshufb %xmm2, %xmm1 # use the indices in xmm2 to shuffle xmm1, eferything is 0 in xmm2 therefore everything in xmm1 = xmm1[0]
-
-.LcountLoop:
-  movdqu (%rdi), %xmm0 # load first 16 bytes
-  pcmpistrm $00, %xmm0, %xmm1 # strcmp bytes with equ any and store mask in xmm0
-  jnc .LcountLoopCheck # c is on when hit, if nothing is hit, just check whether we reached the string end
+  vpxor %ymm0, %ymm0, %ymm0
+  movzx %sil, %rsi # clear upper bits of rsi
+  vmovd %esi, %xmm1 
+  vpbroadcastb %xmm1, %ymm1 # copy lowest byte everywhere
   xor %r8, %r8
-  movq %xmm0, %r8
-  # pmovmskb %xmm0, %r8d # load the mask from xmm0 into r8
-  popcnt %r8d, %r8d # count active bits and store in r8
-  add %r8, %rcx # add counted bits to the counter
-.LcountLoopCheck:
-  add $16, %rdi
-  mov %rdi, %r10 # load end
-  sub %rsi, %r10 # (end - start) = checked_len
-  add $15, %r10
-  cmp %r9, %r10 # strlen <= checked_len + 15; end loop
-  jge .LcountLoopEnd
-  jmp .LcountLoop
-.LcountLoopEnd:
+.Lymm_loop:
+  cmp $32, %r9
+  jb .Ltail_mask # if remaining < 32 do masked loading
 
-  mov %rdi, %r10 # load end
-  sub %rsi, %r10 # (end - start) = checked_len
-  sub %r10, %r9 # missing bytes
-  test %r9, %r9
-  jz .LtailCountLoopEnd # if missing bytes is 0 end
-.LtailCountLoop: # order doesn't matter
-  movzbq (%rdi, %r9, 1), %rdx # load char at str[r10] -> rdx
-  cmp %dl, %al
-  jne .LtailCountLoopCheck # if not delimier repeat loop if neccesarry
-  inc %rcx
-.LtailCountLoopCheck:
-  dec %r9
-  test %r9, %r9
-  js .LtailCountLoopEnd # if missing bytes is 0 end
-  jmp .LtailCountLoop
-.LtailCountLoopEnd:
-  
-  # AVX-512 alternative
-  # r10 = missing bytes
-  # r9 = (1 << missingbytes) - 1
-  # kmovw %r9w, %k1
-  # vmovdqu8 (%rdi), %xmm0{%k1}{z}
+  mov $-1, %r10d # create extraction mask everything (32 bytes)
+  kmovq %r10, %k1 # load mask into mask reg
+  vmovdqu8 (%rdi), %ymm0{%k1}{z} # load with mask from mem
+  vpcmpeqb %ymm1, %ymm0, %ymm0 # find equal bytes and store mask in ymm0
+  vpmovmskb %ymm0, %r8d # laod mask into r8d
+  popcnt %r8d, %r8d # count ones
+  add %r8, %rcx
 
+  add $32, %rdi
+  sub $32, %r9
+  jmp .Lymm_loop
+.Ltail_mask:
+  test %r9, %r9
+  jz .Ldone_tail # nothing to do on 0
+
+  mov $1, %r10
+  xchg %r9, %rcx
+  shl %cl, %r10d # shift by missing byte amount
+  dec %r10d # dec to create mask
+  xchg %r9, %rcx
+  kmovq %r10, %k1 # load mask into mask reg
+  vmovdqu8 (%rdi), %ymm0{%k1}{z} # load from mem via mask fill 0
+  vpcmpeqb %ymm1, %ymm0, %ymm0 # find equal bytes and store mask in ymm0
+  vpmovmskb %ymm0, %r8d # laod mask into r8d
+  popcnt %r8d, %r8d # count ones
+  add %r8, %rcx
+
+.Ldone_tail:
   mov %rcx, %rax
+
   leave
   ret
 
