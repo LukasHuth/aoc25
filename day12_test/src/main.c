@@ -17,9 +17,14 @@ static char *read_input(long *out_size) {
         fclose(f);
         exit(1);
     }
-    fread(buf, 1, size, f);
-    buf[size] = '\0';
+    size_t nread = fread(buf, 1, size, f);
     fclose(f);
+    if ((long)nread != size) {
+        fprintf(stderr, "Failed to read input.txt\n");
+        free(buf);
+        exit(1);
+    }
+    buf[nread] = '\0';
     *out_size = size;
     return buf;
 }
