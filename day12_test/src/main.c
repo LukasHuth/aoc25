@@ -192,6 +192,7 @@ static void solve_part1(const char *input, long size) {
       get_shape_area(&(*shapes)[2]), get_shape_area(&(*shapes)[3]),
       get_shape_area(&(*shapes)[4]), get_shape_area(&(*shapes)[5]),
   };
+  free(shapes);
   long region_count = get_regions(parts[6], &regions);
   long possible = 0;
   long possible_area, needed_area;
@@ -205,6 +206,7 @@ static void solve_part1(const char *input, long size) {
       possible++;
     printf("I: %ld needed: %ld possible: %ld\n", i, needed_area, possible_area);
   }
+  free(regions);
   // printf("TODO\n");
   printf("Possible: %ld\n", possible);
 }
