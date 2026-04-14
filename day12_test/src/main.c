@@ -32,25 +32,21 @@ static char *read_input(long *out_size) {
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
 long string_utility_find_scalar(const char *input, char delimiter);
+long string_utility_find(const char *input, char delimiter, char delimiter2);
 long string_utility_strlen(const char *input);
 // long string_utility_count_scalar(const char *input, long size,
 // char delimiter);
 /* */
+static void panic(const char *msg) __attribute__((noreturn));
+static void panic(const char *msg) {
+  printf("%s\n", msg);
+  exit(1);
+}
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
-  if (delimiter_size == 1)
-    return string_utility_find_scalar(input, delimiter[0]);
-  long offset = 0;
-  int find_offset = 0;
-  while (offset < size) {
-    if (input[offset++] == delimiter[find_offset])
-      find_offset++;
-    else
-      find_offset = 0;
-    if (find_offset == delimiter_size)
-      return offset - delimiter_size;
-  }
-  return offset;
+  if (delimiter_size <= 2)
+    return string_utility_find(input, delimiter[0], delimiter[1]);
+  panic("Can only handle delimiter with size 2 or less");
 }
 /* */
 
@@ -131,7 +127,8 @@ struct Region {
 
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
-  long region_count = split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
+  long region_count =
+      split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
   *regions = calloc(region_count, sizeof(struct Region));
   for (long i = 0; i < region_count; i++) {
     if (string_utility_strlen(parts[i]) == 0) {
@@ -141,12 +138,13 @@ static long get_regions(char *regions_str, struct Region **regions) {
     char **left_right;
     split(parts[i], string_utility_strlen(parts[i]), ": ", 2, &left_right);
     char **dimensions;
-    split(left_right[0], string_utility_strlen(left_right[0]), "x", 1, &dimensions);
+    split(left_right[0], string_utility_strlen(left_right[0]), "x", 1,
+          &dimensions);
     (*regions)[i].width = atoi(dimensions[0]);
     (*regions)[i].height = atoi(dimensions[1]);
     char **amounts;
-    long amounts_length =
-        split(left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
+    long amounts_length = split(
+        left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
     for (int j = 0; j < PresentAmount; j++) {
       if (j >= amounts_length)
         break;

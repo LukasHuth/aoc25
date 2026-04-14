@@ -2,6 +2,7 @@
 .global string_utility_count_scalar
 .global string_utility_strlen
 .global string_utility_find_scalar
+.global string_utility_find
 .section .data
 .section .text
 #------------------------------------------------------------------------------
@@ -121,11 +122,28 @@ string_utility_strlen:
 # Arguments:
 # rdi = string
 # rsi = character to find
+# rdx = 2 character to find
 #------------------------------------------------------------------------------
 # Returns: The offset, when a char is found.
 #   When nothing is found the amount until the string end is returned.
 #------------------------------------------------------------------------------
 string_utility_find_scalar:
+  xor %rdx, %rdx
+  call string_utility_find
+  ret
+
+#------------------------------------------------------------------------------
+# String find - returns the offset, when a character is found
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+# rsi = character to find
+# rdx = 2 character to find
+#------------------------------------------------------------------------------
+# Returns: The offset, when a char is found.
+#   When nothing is found the amount until the string end is returned.
+#------------------------------------------------------------------------------
+string_utility_find:
   xor %rcx, %rcx
   vpxor %ymm1, %ymm1, %ymm1
   vpxor %ymm2, %ymm2, %ymm2
@@ -140,14 +158,39 @@ string_utility_find_scalar:
   vpor %ymm3, %ymm4, %ymm5 # combine findings
 
   vpmovmskb %ymm5, %r8d # extract findings as mask
+.Lfind_loop:
   test %r8, %r8
-  jnz .Lymm_End_find
+  jz .Lnext
 
+  # if first found is null return i
+  tzcnt %r8, %rax # count where first hit was found
+  lea (%rax, %rcx), %rax
+  movb (%rdi, %rax), %al
+  test %al, %al
+  jz .Lreturn_i
+
+  # if next char is null return i
+  cmp $0, %rdx
+  je .Lreturn_i
+  # if next char is equal return i
+  tzcnt %r8, %rax # count where first hit was found
+  lea 1(%rax, %rcx), %rax
+  movb (%rdi, %rax), %al
+  cmpb %dl, %al
+  je .Lreturn_i
+
+  tzcnt %r8, %rax # count where first hit was found
+  btr     %eax, %r8d
+  jmp .Lfind_loop
+
+.Lnext:
   add $32, %rcx
   jmp .Lymm_Loop_find
-.Lymm_End_find:
+
+.Lreturn_i:
   tzcnt %r8, %rax # count where first hit was found
   add %rcx, %rax
+.Lend:
   vzeroupper
   ret
 
