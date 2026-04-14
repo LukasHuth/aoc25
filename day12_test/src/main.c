@@ -73,12 +73,12 @@ static long count_occurence(const char *input, long size, const char *delimiter,
 static long split(const char *input, long size, const char *delimiter,
                   long delimiter_size, char ***parts) {
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
-  *parts = (char **)calloc(occurences, sizeof(char *));
+  *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
   for (int occurence = 0; occurence < occurences + 1; occurence++) {
     long amount =
         find_occurence(input_temp_ptr, size, delimiter, delimiter_size);
-    char *data = (char *)calloc(amount + 1, sizeof(char));
+    char *data = (char *)calloc(amount + 2, sizeof(char));
     strncpy(data, input_temp_ptr, amount);
     data[amount + 1] = '\0';
     (*parts)[occurence] = data;
