@@ -31,6 +31,20 @@ string_utility_splitstring:
   push %rax # 4 = delimiter occurences
 
   # TODO: use counted delimiter to alloc vector for each part, split and save (with null terminator)
+  # allocate vector
+  mov -40(%rbp), %rax
+  mov $8, %rcx
+  mul %rcx
+  mov %rax, %rdi
+  call utils_malloc
+  push %rax
+
+  # Store string vec
+  mov -24(%rbp), %rdi
+  lea 0(%rdi), %rdi
+  mov %rax, (%rdi)
+
+  xor %rcx, %rcx
 
   leave
   ret
@@ -112,19 +126,83 @@ string_utility_count_scalar:
 #------------------------------------------------------------------------------
 .type string_utility_strlen,@function
 string_utility_strlen:
-  xor %rcx, %rcx
-  xor %r8, %r8
-  vpxor %ymm1, %ymm1, %ymm1
-.Lymm_Loop:
-  vmovdqu (%rdi, %rcx), %ymm0
-  vpcmpeqb %ymm1, %ymm0, %ymm0
-  vpmovmskb %ymm0, %r8d
-  test %r8, %r8
-  jnz .Lymm_End
-  add $32, %rcx
-  jmp .Lymm_Loop
-.Lymm_End:
-  tzcnt %r8, %rax
-  add %rcx, %rax
+  xor %rsi, %rsi
+  call string_utility_find
   ret
 
+#------------------------------------------------------------------------------
+# String find - returns the offset, when a character is found
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+# rsi = character to find
+#------------------------------------------------------------------------------
+# Returns: The offset, when a char is found.
+#   When nothing is found the amount until the string end is returned.
+#------------------------------------------------------------------------------
+string_utility_find:
+  xor %rcx, %rcx
+  vpxor %ymm1, %ymm1, %ymm1
+  vpxor %ymm2, %ymm2, %ymm2
+
+  movzx %sil, %rsi # clear upper bits of rsi
+  vmovd %esi, %xmm1 
+  vpbroadcastb %xmm1, %ymm1 # copy lowest byte everywhere
+.Lymm_Loop_find:
+  vmovdqu (%rdi, %rcx), %ymm0
+  vpcmpeqb %ymm1, %ymm0, %ymm3 # find char
+  vpcmpeqb %ymm2, %ymm0, %ymm4 # find string end
+  vpor %ymm3, %ymm4, %ymm5 # combine findings
+
+  vpmovmskb %ymm5, %r8d # extract findings as mask
+  test %r8, %r8
+  jnz .Lymm_End_find
+
+  add $32, %rcx
+  jmp .Lymm_Loop_find
+.Lymm_End_find:
+  tzcnt %r8, %rax # count where first hit was found
+  add %rcx, %rax
+  vzeroupper
+  ret
+
+#------------------------------------------------------------------------------
+# String copy - copies the string into the ptr
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+# rsi = amount to copy
+# rdx = destination ptr
+#------------------------------------------------------------------------------
+# Returns: Nothing
+#------------------------------------------------------------------------------
+string_utility_copy:
+  push %rcx
+
+  xor %rcx, %rcx
+
+  mov $-1, %r10d # create extraction mask everything (32 bytes)
+  kmovq %r10, %k1 # load mask into mask reg
+
+.Loop_full:
+  cmp $32, %rsi
+  jl .Loop_tail
+
+  jmp .Loop_full
+.Loop_tail:
+  test %rsi, %rsi
+  jz .Loop_end
+
+  mov $1, %r10d # create extraction mask
+  xchg %rcx, %rsi
+  shl %cl, %r10d
+  xchg %rcx, %rsi
+  kmovq %r10, %k1 # load mask into mask reg
+  vmovdqu8 (%rdi, %rcx), %ymm0{%k1}{z} # load with mask from mem
+  vmovdqu8 %ymm0, (%rdi){%k1}
+
+.Loop_end:
+
+  pop %rcx
+  vzeroupper
+  ret

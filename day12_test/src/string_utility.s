@@ -61,59 +61,43 @@ string_utility_splitstring:
 #------------------------------------------------------------------------------
 .type string_utility_count_scalar,@function
 string_utility_count_scalar:
-  push %rbp
-  mov %rsp, %rbp
-  push %rdi
-  push %rsi
-  push %rdx
+  xor   %ecx, %ecx              # count = 0
+  test  %rdx, %rdx
+  jz    .done
 
-  # count delimiters
-  xor %rcx, %rcx
+  movzx %sil, %esi
+  vmovd %esi, %xmm1
+  vpbroadcastb %xmm1, %ymm1
 
-  # fill delimiter SSE register
-  mov -24(%rbp), %r9 # load str len
-  mov -16(%rbp), %rax # load delimiter
-  mov -8(%rbp), %rdi # load str
-  vpxor %ymm0, %ymm0, %ymm0
-  movzx %sil, %rsi # clear upper bits of rsi
-  vmovd %esi, %xmm1 
-  vpbroadcastb %xmm1, %ymm1 # copy lowest byte everywhere
-  xor %r8, %r8
-  mov $-1, %r10d # create extraction mask everything (32 bytes)
-  kmovq %r10, %k1 # load mask into mask reg
-.Lymm_loop:
-  cmp $32, %r9
-  jb .Ltail_mask # if remaining < 32 do masked loading
+.loop32:
+  cmp   $32, %rdx
+  jb    .tail
 
-  vmovdqu8 (%rdi), %ymm0{%k1}{z} # load with mask from mem
-  vpcmpeqb %ymm1, %ymm0, %ymm0 # find equal bytes and store mask in ymm0
-  vpmovmskb %ymm0, %r8d # laod mask into r8d
-  popcnt %r8d, %r8d # count ones
-  add %r8, %rcx
+  vmovdqu   (%rdi), %ymm0
+  vpcmpeqb  %ymm1, %ymm0, %ymm0
+  vpmovmskb %ymm0, %r8d
+  popcnt    %r8d, %r8d
+  add       %r8, %rcx
 
-  add $32, %rdi
-  sub $32, %r9
-  jmp .Lymm_loop
-.Ltail_mask:
-  test %r9, %r9
-  jz .Ldone_tail # nothing to do on 0
+  add   $32, %rdi
+  sub   $32, %rdx
+  jmp   .loop32
 
-  mov $1, %r10
-  xchg %r9, %rcx
-  shl %cl, %r10d # shift by missing byte amount
-  dec %r10d # dec to create mask
-  xchg %r9, %rcx
-  kmovq %r10, %k1 # load mask into mask reg
-  vmovdqu8 (%rdi), %ymm0{%k1}{z} # load from mem via mask fill 0
-  vpcmpeqb %ymm1, %ymm0, %ymm0 # find equal bytes and store mask in ymm0
-  vpmovmskb %ymm0, %r8d # laod mask into r8d
-  popcnt %r8d, %r8d # count ones
-  add %r8, %rcx
+.tail:
+  test  %rdx, %rdx
+  jz    .done
+  movb  (%rdi), %al
+  cmpb  %sil, %al
+  jne   1f
+  inc   %rcx
+  1:
+  inc   %rdi
+  dec   %rdx
+  jmp   .tail
 
-.Ldone_tail:
-  mov %rcx, %rax
-
-  leave
+.done:
+  mov   %rcx, %rax
+  vzeroupper
   ret
 
 #------------------------------------------------------------------------------
