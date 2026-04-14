@@ -31,11 +31,14 @@ static char *read_input(long *out_size) {
 }
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
+long string_utility_find(const char *input, char delimiter);
 // long string_utility_count_scalar(const char *input, long size,
 // char delimiter);
 /* */
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
+  if (delimiter_size == 1)
+    return string_utility_find(input, delimiter[0]);
   long offset = 0;
   int find_offset = 0;
   while (offset < size) {
