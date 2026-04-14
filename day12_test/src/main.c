@@ -31,13 +31,14 @@ static char *read_input(long *out_size) {
 }
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
+long string_utility_find(const char *input, char delimiter);
 // long string_utility_count_scalar(const char *input, long size,
 // char delimiter);
 /* */
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
   if (delimiter_size == 1)
-    return string_utility_count_scalar(input, delimiter[0], size);
+    return string_utility_find(input, delimiter[0]);
   long offset = 0;
   int find_offset = 0;
   while (offset < size) {
@@ -54,6 +55,8 @@ static long find_occurence(const char *input, long size, const char *delimiter,
 
 static long count_occurence(const char *input, long size, const char *delimiter,
                             long delimiter_size) {
+  if (delimiter_size == 1)
+    return string_utility_count_scalar(input, delimiter[0], size);
   long offset = 0;
   long amount = 0;
   int find_offset = 0;
@@ -75,14 +78,18 @@ static long split(const char *input, long size, const char *delimiter,
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
   *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
+  long remaining = size;
   for (int occurence = 0; occurence < occurences + 1; occurence++) {
     long amount =
-        find_occurence(input_temp_ptr, size, delimiter, delimiter_size);
-    char *data = (char *)calloc(amount + 2, sizeof(char));
+        find_occurence(input_temp_ptr, remaining, delimiter, delimiter_size);
+    char *data = (char *)calloc(amount + 1, sizeof(char));
     strncpy(data, input_temp_ptr, amount);
-    data[amount + 1] = '\0';
+    data[amount] = '\0';
     (*parts)[occurence] = data;
     input_temp_ptr += amount + delimiter_size;
+    remaining -= amount + delimiter_size;
+    if (remaining < 0)
+      remaining = 0;
   }
   return occurences + 1;
 }
@@ -140,6 +147,10 @@ static long get_regions(char *regions_str, struct Region **regions) {
     long amounts_length =
         split(left_right[1], strlen(left_right[1]), " ", 1, &amounts);
     for (int j = 0; j < PresentAmount; j++) {
+      if (j >= amounts_length)
+        break;
+      if (strlen(amounts[j]) == 0)
+        continue;
       (*regions)[i].presents[j] = atoi(amounts[j]);
     }
     cleanup(amounts, amounts_length);

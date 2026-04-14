@@ -1,6 +1,7 @@
 .global string_utility_splitstring
 .global string_utility_count_scalar
 .global string_utility_strlen
+.global string_utility_find
 .section .data
 .section .text
 #------------------------------------------------------------------------------
