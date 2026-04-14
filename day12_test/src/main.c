@@ -36,8 +36,6 @@ long string_utility_count_scalar(const char *input, char delimiter, long size);
 /* */
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
-  if (delimiter_size == 1)
-    return string_utility_count_scalar(input, delimiter[0], size);
   long offset = 0;
   int find_offset = 0;
   while (offset < size) {

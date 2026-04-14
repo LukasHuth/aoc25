@@ -1,0 +1,63 @@
+input: 
+0:
+###
+##.
+##.
+input: 
+1:
+###
+##.
+.##
+input: 
+2:
+.##
+###
+##.
+input: 
+3:
+##.
+###
+##.
+input: 
+4:
+###
+#..
+###
+input: 
+5:
+###
+.#.
+###
+input: 
+4x4: 0 0 0 0 2 0
+12x5: 1 0 1 0 2 2
+12x5: 1 0 1 0 3 2
+
+Shape 0:
+###
+##.
+##.
+Shape 1:
+###
+##.
+.##
+Shape 2:
+.##
+###
+##.
+Shape 3:
+##.
+###
+##.
+Shape 4:
+###
+#..
+###
+Shape 5:
+###
+.#.
+###
+I: 0 needed: 14 possible: 16
+I: 1 needed: 42 possible: 60
+I: 2 needed: 49 possible: 60
+Possible: 3
