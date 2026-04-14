@@ -31,14 +31,15 @@ static char *read_input(long *out_size) {
 }
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
-long string_utility_find(const char *input, char delimiter);
+long string_utility_find_scalar(const char *input, char delimiter);
+long string_utility_strlen(const char *input);
 // long string_utility_count_scalar(const char *input, long size,
 // char delimiter);
 /* */
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
   if (delimiter_size == 1)
-    return string_utility_find(input, delimiter[0]);
+    return string_utility_find_scalar(input, delimiter[0]);
   long offset = 0;
   int find_offset = 0;
   while (offset < size) {
@@ -112,7 +113,7 @@ static void get_shapes(char **parts, Shapes *shapes) {
   for (int i = 0; i < PresentAmount; i++) {
     char **parts_part;
     long parts_part_length =
-        split(parts[i], strlen(parts[i]), "\n", 1, &parts_part);
+        split(parts[i], string_utility_strlen(parts[i]), "\n", 1, &parts_part);
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 3; k++) {
         (*shapes)[i][j][k] = parts_part[j + 1][k] == '#';
@@ -130,26 +131,26 @@ struct Region {
 
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
-  long region_count = split(regions_str, strlen(regions_str), "\n", 1, &parts);
+  long region_count = split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
   *regions = calloc(region_count, sizeof(struct Region));
   for (long i = 0; i < region_count; i++) {
-    if (strlen(parts[i]) == 0) {
+    if (string_utility_strlen(parts[i]) == 0) {
       region_count--;
       continue;
     }
     char **left_right;
-    split(parts[i], strlen(parts[i]), ": ", 2, &left_right);
+    split(parts[i], string_utility_strlen(parts[i]), ": ", 2, &left_right);
     char **dimensions;
-    split(left_right[0], strlen(left_right[0]), "x", 1, &dimensions);
+    split(left_right[0], string_utility_strlen(left_right[0]), "x", 1, &dimensions);
     (*regions)[i].width = atoi(dimensions[0]);
     (*regions)[i].height = atoi(dimensions[1]);
     char **amounts;
     long amounts_length =
-        split(left_right[1], strlen(left_right[1]), " ", 1, &amounts);
+        split(left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
     for (int j = 0; j < PresentAmount; j++) {
       if (j >= amounts_length)
         break;
-      if (strlen(amounts[j]) == 0)
+      if (string_utility_strlen(amounts[j]) == 0)
         continue;
       (*regions)[i].presents[j] = atoi(amounts[j]);
     }

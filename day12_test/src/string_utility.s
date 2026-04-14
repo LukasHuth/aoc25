@@ -1,7 +1,7 @@
 .global string_utility_splitstring
 .global string_utility_count_scalar
 .global string_utility_strlen
-.global string_utility_find
+.global string_utility_find_scalar
 .section .data
 .section .text
 #------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ string_utility_count_scalar:
 .type string_utility_strlen,@function
 string_utility_strlen:
   xor %rsi, %rsi
-  call string_utility_find
+  call string_utility_find_scalar
   ret
 
 #------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ string_utility_strlen:
 # Returns: The offset, when a char is found.
 #   When nothing is found the amount until the string end is returned.
 #------------------------------------------------------------------------------
-string_utility_find:
+string_utility_find_scalar:
   xor %rcx, %rcx
   vpxor %ymm1, %ymm1, %ymm1
   vpxor %ymm2, %ymm2, %ymm2
