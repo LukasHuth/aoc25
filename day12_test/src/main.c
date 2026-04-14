@@ -75,14 +75,18 @@ static long split(const char *input, long size, const char *delimiter,
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
   *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
+  long remaining = size;
   for (int occurence = 0; occurence < occurences + 1; occurence++) {
     long amount =
-        find_occurence(input_temp_ptr, size, delimiter, delimiter_size);
-    char *data = (char *)calloc(amount + 2, sizeof(char));
+        find_occurence(input_temp_ptr, remaining, delimiter, delimiter_size);
+    char *data = (char *)calloc(amount + 1, sizeof(char));
     strncpy(data, input_temp_ptr, amount);
-    data[amount + 1] = '\0';
+    data[amount] = '\0';
     (*parts)[occurence] = data;
     input_temp_ptr += amount + delimiter_size;
+    remaining -= amount + delimiter_size;
+    if (remaining < 0)
+      remaining = 0;
   }
   return occurences + 1;
 }
@@ -140,6 +144,10 @@ static long get_regions(char *regions_str, struct Region **regions) {
     long amounts_length =
         split(left_right[1], strlen(left_right[1]), " ", 1, &amounts);
     for (int j = 0; j < PresentAmount; j++) {
+      if (j >= amounts_length)
+        break;
+      if (strlen(amounts[j]) == 0)
+        continue;
       (*regions)[i].presents[j] = atoi(amounts[j]);
     }
     cleanup(amounts, amounts_length);
