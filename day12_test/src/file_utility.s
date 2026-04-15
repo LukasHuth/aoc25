@@ -85,7 +85,7 @@ read_input:
 
   movq -24(%rbp), %rdi
   movq -40(%rbp), %rsi
-  cmp %rdi, %rsi
+  cmp %rsi, %rdi
   je 1f
 
   movq -32(%rbp), %rdi
