@@ -1,5 +1,6 @@
 .global string_utility_splitstring
 .global string_utility_count_scalar
+.global string_utility_count_two_scalar
 .global string_utility_strlen
 .global string_utility_find_scalar
 .global string_utility_find
@@ -61,8 +62,8 @@ string_utility_splitstring:
 #------------------------------------------------------------------------------
 # Returns: The amount the scalar was detected in the string
 #------------------------------------------------------------------------------
-.type string_utility_count_scalar,@function
-string_utility_count_scalar:
+  .type string_utility_count_scalar,@function
+  string_utility_count_scalar:
   xor   %ecx, %ecx              # count = 0
   test  %rdx, %rdx
   jz    .done
@@ -71,7 +72,7 @@ string_utility_count_scalar:
   vmovd %esi, %xmm1
   vpbroadcastb %xmm1, %ymm1
 
-.loop32:
+  .loop32:
   cmp   $32, %rdx
   jb    .tail
 
@@ -85,7 +86,7 @@ string_utility_count_scalar:
   sub   $32, %rdx
   jmp   .loop32
 
-.tail:
+  .tail:
   test  %rdx, %rdx
   jz    .done
   movb  (%rdi), %al
@@ -97,7 +98,83 @@ string_utility_count_scalar:
   dec   %rdx
   jmp   .tail
 
-.done:
+  .done:
+  mov   %rcx, %rax
+  vzeroupper
+  ret
+
+#------------------------------------------------------------------------------
+# Count two Scalar - Counts a Scalar in a string
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = string
+# rsi = delimiter 1
+# rdx = delimiter 2
+# rcx = string len
+#------------------------------------------------------------------------------
+# Returns: The amount the scalar was detected in the string
+#------------------------------------------------------------------------------
+.type string_utility_count_scalar,@function
+string_utility_count_two_scalar:
+  xchg %rdx, %rcx
+  test %rcx, %rcx
+  jnz .two_delimiters
+
+  call string_utility_count_scalar
+  ret
+
+.two_delimiters:
+  # rdi = string
+  # rsi = delimiter 1
+  # rdx = string len
+  # rcx = delimiter 2
+  mov %rcx, %r9
+  xor   %ecx, %ecx              # count = 0
+  test  %rdx, %rdx
+  jz    .done_2
+
+  movzx %sil, %esi
+  vmovd %esi, %xmm2
+  vpbroadcastb %xmm2, %ymm2
+  movzx %r9b, %r9d
+  vmovd %r9d, %xmm3
+  vpbroadcastb %xmm3, %ymm3
+
+  .loop32_2:
+  cmp   $32, %rdx
+  jb    .tail_2
+
+  vmovdqu   (%rdi), %ymm0
+  vmovaps %ymm0, %ymm1
+  vpcmpeqb  %ymm3, %ymm1, %ymm1
+  vpmovmskb %ymm1, %r10d
+  vpcmpeqb  %ymm2, %ymm0, %ymm0
+  vpmovmskb %ymm0, %r8d
+  shl $1, %r10d
+  and %r10d, %r8d
+  popcnt    %r8d, %r8d
+  add       %r8, %rcx
+
+  add   $32, %rdi
+  sub   $32, %rdx
+  jmp   .loop32_2
+
+  .tail_2:
+  test  %rdx, %rdx
+  jz    .done_2
+  movb  (%rdi), %al
+  cmpb  %sil, %al
+  jne   1f
+  movb  1(%rdi), %al
+  cmpb  %r9b, %al
+  jne   1f
+  inc   %rcx
+  1:
+  inc   %rdi
+  dec   %rdx
+  jmp   .tail_2
+
+  .done_2:
   mov   %rcx, %rax
   vzeroupper
   ret

@@ -31,6 +31,8 @@ static char *read_input(long *out_size) {
 }
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
+long string_utility_count_two_scalar(const char *input, char delimiter,
+                                     char delimiter2, long size);
 long string_utility_find_scalar(const char *input, char delimiter);
 long string_utility_find(const char *input, char delimiter, char delimiter2);
 long string_utility_strlen(const char *input);
@@ -50,25 +52,15 @@ static long find_occurence(const char *input, long size, const char *delimiter,
 }
 /* */
 
+/* */
 static long count_occurence(const char *input, long size, const char *delimiter,
                             long delimiter_size) {
-  if (delimiter_size == 1)
-    return string_utility_count_scalar(input, delimiter[0], size);
-  long offset = 0;
-  long amount = 0;
-  int find_offset = 0;
-  while (offset < size) {
-    if (input[offset++] == delimiter[find_offset])
-      find_offset++;
-    else
-      find_offset = 0;
-    if (find_offset == delimiter_size) {
-      find_offset = 0;
-      amount++;
-    }
-  }
-  return amount;
+  if (delimiter_size <= 2)
+    return string_utility_count_two_scalar(input, delimiter[0], delimiter[1],
+                                           size);
+  panic("Can only handle delimiter with size 2 or less");
 }
+/* */
 
 static long split(const char *input, long size, const char *delimiter,
                   long delimiter_size, char ***parts) {
