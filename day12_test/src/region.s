@@ -88,6 +88,7 @@ get_region:
   movq -40(%rbp), %rdi
   movq (8 * j)(%rdi), %rdi
   mov %eax, (8 + 4 * j)(%r12)
+# TODO: missing stoi and store xD
   1:
   .endr
 

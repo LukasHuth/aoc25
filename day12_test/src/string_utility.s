@@ -177,6 +177,8 @@ string_utility_find_scalar:
 #------------------------------------------------------------------------------
 string_utility_find:
   xor %rcx, %rcx
+  test %rdi, %rdi
+  jz .Lend_zero
   vpxor %ymm1, %ymm1, %ymm1
   vpxor %ymm2, %ymm2, %ymm2
 
@@ -219,6 +221,8 @@ string_utility_find:
   add $32, %rcx
   jmp .Lymm_Loop_find
 
+.Lend_zero:
+  xor %rax, %rax
 .Lreturn_i:
   tzcnt %r8, %rax # count where first hit was found
   add %rcx, %rax

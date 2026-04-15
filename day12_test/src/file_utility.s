@@ -1,4 +1,4 @@
-.global string_utility_count_scalar
+.global read_input
 .section .data
 .section .rodata
 filename:
@@ -23,15 +23,15 @@ failed_to_read:
 .extern malloc
 .extern utils_panic
 
-.type string_utility_count_scalar,@function
-string_utility_count_scalar:
+.type read_input,@function
+read_input:
   push %rbp
   mov %rsp, %rbp
   sub $64, %rsp
   mov %rdi, -8(%rbp)
 
   leaq filename(%rip), %rdi
-  leaq filemode(%rip), %rdi
+  leaq filemode(%rip), %rsi
   call fopen
 
   test %rax, %rax
@@ -84,7 +84,7 @@ string_utility_count_scalar:
   call fclose
 
   movq -24(%rbp), %rdi
-  movq -16(%rbp), %rsi
+  movq -40(%rbp), %rsi
   cmp %rdi, %rsi
   je 1f
 
@@ -100,7 +100,7 @@ string_utility_count_scalar:
   movq -32(%rbp), %rdi
   movq -40(%rbp), %rsi
   add %rsi, %rdi
-  movb $'\0', (%rdi)
+  movb $0, (%rdi)
 
   movq -24(%rbp), %rdi
   movq -8(%rbp), %rsi

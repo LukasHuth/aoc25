@@ -45,6 +45,7 @@ utils_panic:
   call utils_eprint
   pop %rdi
   call utils_exit
+  ret
 
 #------------------------------------------------------------------------------
 # EPrint - Prints a message on stderr
@@ -108,6 +109,7 @@ _utils_print:
 utils_exit:
   mov $60, %rax
   syscall
+  ret
 
 #------------------------------------------------------------------------------
 # Init Heap - Initiates the heap with a Specified size in MB
@@ -258,8 +260,16 @@ _create_guard:
 # Panics: When string is empty or unknown character is read
 #------------------------------------------------------------------------------
 utils_stoi:
-  test %rsi, %rsi
+  push %rbp
+  mov %rsp, %rbp
+  test %rdi, %rdi
   jz 2f
+  push %rdi
+  sub $8, %rsp
+  call string_utility_strlen
+  mov %rax, %rsi
+  add $8, %rsp
+  pop %rdi
   xor %rax, %rax
   xor %r8, %r8
   xor %r9, %r9
@@ -268,7 +278,7 @@ utils_stoi:
   subb $'0', %r9b
   test %r9b, %r9b
   js 2f
-  cmp %r9b, 9
+  cmp $9, %r9b
   jg 2f
   lea (%rax, %rax, 4), %rax # rax *= 5
   lea (%r9, %rax, 2), %rax # rax *= 2 rax += (char - '0')
@@ -285,5 +295,6 @@ utils_stoi:
   call utils_panic
 
   1:
+  leave
   ret
 

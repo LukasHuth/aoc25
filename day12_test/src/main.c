@@ -43,9 +43,7 @@ long string_utility_strlen(const char *input);
 /* */
 void utils_panic(const char *msg, long exit_code) __attribute__((noreturn));
 static void panic(const char *msg) __attribute__((noreturn));
-static void panic(const char *msg) {
-  utils_panic(msg, 1);
-}
+static void panic(const char *msg) { utils_panic(msg, 1); }
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
   if (delimiter_size <= 2)
@@ -64,9 +62,11 @@ static long count_occurence(const char *input, long size, const char *delimiter,
 }
 /* */
 
-void string_utility_copy(const char* input, long amount, char* dest);
-static long split(const char *input, long size, const char *delimiter,
-                  long delimiter_size, char ***parts) {
+void string_utility_copy(const char *input, long amount, char *dest);
+long split(const char *input, long size, const char *delimiter,
+           long delimiter_size, char ***parts) {
+  if (!input)
+    return 0;
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
   *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
@@ -87,7 +87,7 @@ static long split(const char *input, long size, const char *delimiter,
   return occurences + 1;
 }
 
-static void cleanup(char **arr, long amount) {
+void cleanup(char **arr, long amount) {
   return;
   if (!arr)
     return;
@@ -152,7 +152,7 @@ static long get_regions(char *regions_str, struct Region **regions) {
       split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
   *regions = calloc(region_count, sizeof(struct Region));
   for (long i = 0; i < region_count; i++) {
-    if (string_utility_strlen(parts[i]) == 0) {
+    if (string_utility_strlen(parts[i]) == 0 || !parts[i]) {
       region_count--;
       continue;
     }
