@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 static char *read_input(long *out_size) {
   FILE *f = fopen("input.txt", "r");
@@ -62,6 +61,7 @@ static long count_occurence(const char *input, long size, const char *delimiter,
 }
 /* */
 
+void string_utility_copy(const char* input, long amount, char* dest);
 static long split(const char *input, long size, const char *delimiter,
                   long delimiter_size, char ***parts) {
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
@@ -72,7 +72,8 @@ static long split(const char *input, long size, const char *delimiter,
     long amount =
         find_occurence(input_temp_ptr, remaining, delimiter, delimiter_size);
     char *data = (char *)calloc(amount + 1, sizeof(char));
-    strncpy(data, input_temp_ptr, amount);
+    // strncpy(data, input_temp_ptr, amount);
+    string_utility_copy(input_temp_ptr, amount, data);
     data[amount] = '\0';
     (*parts)[occurence] = data;
     input_temp_ptr += amount + delimiter_size;
@@ -117,6 +118,8 @@ struct Region {
   int presents[PresentAmount];
 };
 
+void get_region(char *part, struct Region *region);
+/*
 static void get_region(char *part, struct Region *region) {
   char **left_right;
   split(part, string_utility_strlen(part), ": ", 2, &left_right);
@@ -139,6 +142,7 @@ static void get_region(char *part, struct Region *region) {
   cleanup(dimensions, 2);
   cleanup(left_right, 2);
 }
+/* */
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
   long region_count =
