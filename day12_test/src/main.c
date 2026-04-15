@@ -152,11 +152,14 @@ static long get_regions(char *regions_str, struct Region **regions) {
   return region_count;
 }
 
+long get_shape_area(Shape *shape);
+/*
 static long get_shape_area(Shape *shape) {
   return (*shape)[0][0] + (*shape)[0][1] + (*shape)[0][2] + (*shape)[1][0] +
          (*shape)[1][1] + (*shape)[1][2] + (*shape)[2][0] + (*shape)[2][1] +
          (*shape)[2][2];
 }
+/* */
 
 static void solve_part1(const char *input, long size) {
   (void)input;
