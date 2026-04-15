@@ -117,6 +117,28 @@ struct Region {
   int presents[PresentAmount];
 };
 
+static void get_region(char *part, struct Region *region) {
+  char **left_right;
+  split(part, string_utility_strlen(part), ": ", 2, &left_right);
+  char **dimensions;
+  split(left_right[0], string_utility_strlen(left_right[0]), "x", 1,
+        &dimensions);
+  region->width = atoi(dimensions[0]);
+  region->height = atoi(dimensions[1]);
+  char **amounts;
+  long amounts_length = split(
+      left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
+  for (int j = 0; j < PresentAmount; j++) {
+    if (j >= amounts_length)
+      break;
+    if (string_utility_strlen(amounts[j]) == 0)
+      continue;
+    region->presents[j] = atoi(amounts[j]);
+  }
+  cleanup(amounts, amounts_length);
+  cleanup(dimensions, 2);
+  cleanup(left_right, 2);
+}
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
   long region_count =
@@ -127,26 +149,7 @@ static long get_regions(char *regions_str, struct Region **regions) {
       region_count--;
       continue;
     }
-    char **left_right;
-    split(parts[i], string_utility_strlen(parts[i]), ": ", 2, &left_right);
-    char **dimensions;
-    split(left_right[0], string_utility_strlen(left_right[0]), "x", 1,
-          &dimensions);
-    (*regions)[i].width = atoi(dimensions[0]);
-    (*regions)[i].height = atoi(dimensions[1]);
-    char **amounts;
-    long amounts_length = split(
-        left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
-    for (int j = 0; j < PresentAmount; j++) {
-      if (j >= amounts_length)
-        break;
-      if (string_utility_strlen(amounts[j]) == 0)
-        continue;
-      (*regions)[i].presents[j] = atoi(amounts[j]);
-    }
-    cleanup(amounts, amounts_length);
-    cleanup(dimensions, 2);
-    cleanup(left_right, 2);
+    get_region(parts[i], &((*regions)[i]));
   }
   cleanup(parts, region_count);
   return region_count;
@@ -161,6 +164,34 @@ static long get_shape_area(Shape *shape) {
 }
 /* */
 
+long count_possible(struct Region *regions, long region_count,
+                    long shape_area[6]);
+/*
+static long count_possible(struct Region *regions, long region_count,
+                           long (shape_area)[6]) {
+  long possible = 0;
+  long possible_area, needed_area;
+  for (long i = 0; i < region_count; i++) {
+    possible_area = regions[i].width * regions[i].height;
+    needed_area = 0;
+    for (long j = 0; j < PresentAmount; j++) {
+      needed_area += regions[i].presents[j] * shape_area[j];
+    }
+    if (needed_area <= possible_area)
+      possible++;
+    printf("I: %ld needed: %ld possible: %ld\n", i, needed_area, possible_area);
+  }
+  return possible;
+}
+/* */
+void fill_shape_area(Shapes *shapes, long *shape_area);
+/*
+static void fill_shape_area(Shapes *shapes, long *shape_area) {
+  for (int i = 0; i < PresentAmount; i++) {
+    shape_area[i] = get_shape_area(&(*shapes)[i]);
+  }
+}
+*/
 static void solve_part1(const char *input, long size) {
   (void)input;
   (void)size;
@@ -182,25 +213,12 @@ static void solve_part1(const char *input, long size) {
     }
   }
   struct Region *regions;
-  long shape_area[6] = {
-      get_shape_area(&(*shapes)[0]), get_shape_area(&(*shapes)[1]),
-      get_shape_area(&(*shapes)[2]), get_shape_area(&(*shapes)[3]),
-      get_shape_area(&(*shapes)[4]), get_shape_area(&(*shapes)[5]),
-  };
+  long shape_area[6];
+  fill_shape_area(shapes, shape_area);
   free(shapes);
   long region_count = get_regions(parts[6], &regions);
-  long possible = 0;
-  long possible_area, needed_area;
-  for (long i = 0; i < region_count; i++) {
-    possible_area = regions[i].width * regions[i].height;
-    needed_area = 0;
-    for (long j = 0; j < PresentAmount; j++) {
-      needed_area += regions[i].presents[j] * shape_area[j];
-    }
-    if (needed_area <= possible_area)
-      possible++;
-    printf("I: %ld needed: %ld possible: %ld\n", i, needed_area, possible_area);
-  }
+  // long possible = count_possible(regions, region_count, &shape_area);
+  long possible = count_possible(regions, region_count, shape_area);
   free(regions);
   // printf("TODO\n");
   printf("Possible: %ld\n", possible);
