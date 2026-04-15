@@ -65,8 +65,8 @@ static long count_occurence(const char *input, long size, const char *delimiter,
 /* */
 
 void string_utility_copy(const char* input, long amount, char* dest);
-static long split(const char *input, long size, const char *delimiter,
-                  long delimiter_size, char ***parts) {
+long split(const char *input, long size, const char *delimiter,
+           long delimiter_size, char ***parts) {
   long occurences = count_occurence(input, size, delimiter, delimiter_size);
   *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
@@ -87,7 +87,7 @@ static long split(const char *input, long size, const char *delimiter,
   return occurences + 1;
 }
 
-static void cleanup(char **arr, long amount) {
+void cleanup(char **arr, long amount) {
   return;
   if (!arr)
     return;
