@@ -88,7 +88,6 @@ long split(const char *input, long size, const char *delimiter,
 }
 
 void cleanup(char **arr, long amount) {
-  return;
   if (!arr)
     return;
   for (long i = 0; i < amount; i++) {
