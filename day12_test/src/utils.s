@@ -7,6 +7,8 @@
 .global utils_malloc
 .global utils_stoi
 
+.extern string_utility_strlen
+
 .section .data
 heap:
   .quad 0
@@ -35,12 +37,11 @@ heap_page_size = 4096
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = message
-# rsi = message len
-# rdx = exit code
+# rsi = exit code
 #------------------------------------------------------------------------------
 utils_panic:
   # save exit code
-  push %rdx
+  push %rsi
   call utils_eprint
   pop %rdi
   call utils_exit
@@ -50,13 +51,12 @@ utils_panic:
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = message
-# rsi = message len
 #------------------------------------------------------------------------------
 # Constants:
 # STDERR = 2
 #------------------------------------------------------------------------------
 utils_eprint:
-  mov $2, %rdx
+  mov $2, %rsi
   call _utils_print
   ret
 
@@ -65,13 +65,12 @@ utils_eprint:
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = message
-# rsi = message len
 #------------------------------------------------------------------------------
 # Constants:
 # STDOUT = 1
 #------------------------------------------------------------------------------
 utils_print:
-  mov $1, %rdx
+  mov $1, %rsi
   call _utils_print
   ret
 
@@ -80,16 +79,20 @@ utils_print:
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = message
-# rsi = message len
-# rdx = fd
+# rsi = fd
 #------------------------------------------------------------------------------
 # Constants:
 # SYSCALL WRITE = 1
 #------------------------------------------------------------------------------
 _utils_print:
+  push %rdi
+  push %rsi
+  call string_utility_strlen
+  mov %rax, %rdx # rdx message length
+  pop %rdi # rdi = fd
+  pop %rsi # rsi = message
+
   mov $1, %rax
-  xchg %rsi, %rdx # (rsi = message len, rdx = fd) -> (rdx = message len, rsi = fd)
-  xchg %rsi, %rdi # (rsi = fd, rdi = message) -> (rsi = message, rdi = fd)
   syscall
   ret
 

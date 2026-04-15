@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+char *read_input(long *out_size);
+/*
 static char *read_input(long *out_size) {
   FILE *f = fopen("input.txt", "r");
   if (!f) {
@@ -28,6 +30,7 @@ static char *read_input(long *out_size) {
   *out_size = size;
   return buf;
 }
+/* */
 
 long string_utility_count_scalar(const char *input, char delimiter, long size);
 long string_utility_count_two_scalar(const char *input, char delimiter,
@@ -38,10 +41,10 @@ long string_utility_strlen(const char *input);
 // long string_utility_count_scalar(const char *input, long size,
 // char delimiter);
 /* */
+void utils_panic(const char *msg, long exit_code) __attribute__((noreturn));
 static void panic(const char *msg) __attribute__((noreturn));
 static void panic(const char *msg) {
-  printf("%s\n", msg);
-  exit(1);
+  utils_panic(msg, 1);
 }
 static long find_occurence(const char *input, long size, const char *delimiter,
                            long delimiter_size) {
