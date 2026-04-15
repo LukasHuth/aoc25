@@ -251,13 +251,22 @@ _create_guard:
 #------------------------------------------------------------------------------
 # Arguments:
 # rdi = string
-# rsi = length
 #------------------------------------------------------------------------------
 # Returns: The number extracted from the string
 #------------------------------------------------------------------------------
 # Panics: When string is empty or unknown character is read
 #------------------------------------------------------------------------------
 utils_stoi:
+  push %rbp
+  mov %rsp, %rbp
+  test %rdi, %rdi        # null pointer check
+  jz 2f
+  push %rdi              # save string ptr, stack 8-byte aligned
+  sub $8, %rsp           # realign stack to 16 bytes before call
+  call string_utility_strlen
+  add $8, %rsp
+  mov %rax, %rsi         # rsi = length
+  pop %rdi               # restore string ptr
   test %rsi, %rsi
   jz 2f
   xor %rax, %rax
@@ -268,7 +277,7 @@ utils_stoi:
   subb $'0', %r9b
   test %r9b, %r9b
   js 2f
-  cmp %r9b, 9
+  cmpb $9, %r9b
   jg 2f
   lea (%rax, %rax, 4), %rax # rax *= 5
   lea (%r9, %rax, 2), %rax # rax *= 2 rax += (char - '0')
@@ -285,5 +294,6 @@ utils_stoi:
   call utils_panic
 
   1:
+  leave
   ret
 
