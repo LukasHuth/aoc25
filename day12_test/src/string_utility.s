@@ -294,23 +294,28 @@ string_utility_split:
   push %rbp
   mov %rsp, %rbp
   sub $96, %rsp
-  test %rdi, %rdi # if !input
-  jz 4f # return 0
 
+  # save r12, r13
+  push %r12
+  push %r13
+
+  test %rdi, %rdi # if !input
+  jnz 1f # return 0
+  xor %rax, %rax
+  leave
+  ret
+
+1:
   mov %rdi, -8(%rbp)
   mov %rsi, -16(%rbp)
   mov %rdx, -24(%rbp)
   mov %rcx, -32(%rbp)
   mov %r8, -40(%rbp)
 
-  # save r12, r13
-  push %r12
-  push %r13
-
   # rdi = input
   xchg %rsi, %rcx # rcx = input_length
-  mov 0(%rdx), %rsi
-  mov 1(%rdx), %rdx
+  movzbq 0(%rdx), %rsi
+  movzbq 1(%rdx), %rdx
   call string_utility_count_two_scalar
   mov %rax, -48(%rbp) # occurences = count(input, input_length, delimiter, delimiter_size)
 
@@ -368,12 +373,6 @@ string_utility_split:
 
   # return occurences + 1
   mov %r13, %rax
-
-  jmp 1f
-  4:
-  xor %rax, %rax
-  jmp 1f
-  1:
 
   # restore r12, r13
   pop %r13
