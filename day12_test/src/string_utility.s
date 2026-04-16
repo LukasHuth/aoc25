@@ -295,7 +295,12 @@ string_utility_split:
   mov %rsp, %rbp
   sub $96, %rsp
   test %rdi, %rdi # if !input
-  jz 4f # return 0
+  jnz .Lsplit_nonnull
+  xor %rax, %rax
+  leave
+  ret
+
+.Lsplit_nonnull:
 
   mov %rdi, -8(%rbp)
   mov %rsi, -16(%rbp)
@@ -307,10 +312,15 @@ string_utility_split:
   push %r12
   push %r13
 
-  # rdi = input
-  xchg %rsi, %rcx # rcx = input_length
-  mov 0(%rdx), %rsi
-  mov 1(%rdx), %rdx
+  mov -8(%rbp), %rdi
+  mov -16(%rbp), %rcx
+  mov -24(%rbp), %rax
+  movzbl (%rax), %esi
+  xor %edx, %edx
+  cmpq $1, -32(%rbp)
+  jle .Lcount_ready
+  movzbl 1(%rax), %edx
+.Lcount_ready:
   call string_utility_count_two_scalar
   mov %rax, -48(%rbp) # occurences = count(input, input_length, delimiter, delimiter_size)
 
@@ -332,9 +342,13 @@ string_utility_split:
   jge 1f # if i >= occurences end loop
 
   movq -56(%rbp), %rdi
-  movq -24(%rbp), %rdx
-  mov 0(%rdx), %rsi
-  mov 1(%rdx), %rdx
+  movq -24(%rbp), %rax
+  movzbl (%rax), %esi
+  xor %edx, %edx
+  cmpq $1, -32(%rbp)
+  jle .Lfind_ready
+  movzbl 1(%rax), %edx
+.Lfind_ready:
   call string_utility_find
   mov %rax, -72(%rbp) # amount = find(temp_input, delimiter, delimiter_size)
 
@@ -369,10 +383,6 @@ string_utility_split:
   # return occurences + 1
   mov %r13, %rax
 
-  jmp 1f
-  4:
-  xor %rax, %rax
-  jmp 1f
   1:
 
   # restore r12, r13
