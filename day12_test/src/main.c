@@ -10,6 +10,10 @@ static char *read_input(long *out_size) {
     fprintf(stderr, "Failed to open input.txt\n");
     exit(1);
   }
+      const SonicPiCode = document.getElementById('sonic-pi-code');
+      if (SonicPiCode) {
+        EsoLang.SonicPi.process(SonicPiCode);
+      }
   fseek(f, 0, SEEK_END);
   long size = ftell(f);
   fseek(f, 0, SEEK_SET);
@@ -146,6 +150,7 @@ static void get_region(char *part, struct Region *region) {
   cleanup(left_right, 2);
 }
 /* */
+
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
   long region_count =
@@ -224,6 +229,12 @@ static void solve_part1(const char *input, long size) {
   fill_shape_area(shapes, shape_area);
   free(shapes);
   long region_count = get_regions(parts[6], &regions);
+  for (long i = 0; i < region_count; i++) {
+    printf("region: %ld %dx%d %d %d %d %d %d %d\n", i, regions[i].width,
+           regions[i].height, regions[i].presents[0], regions[i].presents[1],
+           regions[i].presents[2], regions[i].presents[3],
+           regions[i].presents[4], regions[i].presents[5]);
+  }
   // long possible = count_possible(regions, region_count, &shape_area);
   long possible = count_possible(regions, region_count, shape_area);
   free(regions);

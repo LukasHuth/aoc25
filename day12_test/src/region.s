@@ -49,19 +49,19 @@ get_region:
   mov %rax, %rsi
   leaq delimiter_x(%rip), %rdx   # rdx = delimiter (const char*)
   mov  $1, %rcx
-  movq $0, -32(%rbp) 
+  movq $0, -32(%rbp) # dimensions
   leaq -32(%rbp), %r8
   call split
 
   movq -32(%rbp), %rdi
   movq 0(%rdi), %rdi
   call utils_stoi
-  mov %eax, 0(%r12)
+  mov %eax, 0(%r12)  # regions[i]->width = atoi(dimensions[0])
 
   movq -32(%rbp), %rdi
   movq 8(%rdi), %rdi
   call utils_stoi
-  mov %eax, 4(%r12)
+  mov %eax, 4(%r12)  # regions[i]->height = atoi(dimensions[1])
 
   movq -24(%rbp), %rdi
   movq 8(%rdi), %rdi
@@ -71,26 +71,28 @@ get_region:
   mov %rax, %rsi
   leaq delimiter_space(%rip), %rdx   # rdx = delimiter (const char*)
   mov  $1, %rcx
-  movq $0, -40(%rbp) 
+  movq $0, -40(%rbp)   #  amounts
   leaq -40(%rbp), %r8
   call split
-  mov %rax, -48(%rbp)
+  mov %rax, -48(%rbp) # amounts_length
 
   .set j,0
   .rept 6
-  cmpq $j, -48(%rbp)
-  jge 1f
+  cmpq $j, -48(%rbp) # if j >= amounts_length
+  jl 2f              # break
   movq -40(%rbp), %rdi
   movq (8 * j)(%rdi), %rdi
   call string_utility_strlen
-  test %rax, %rax
-  jz 1f
+  test %rax, %rax       # if strlen(amounts[j]) == 0
+  jz 1f # continue
   movq -40(%rbp), %rdi
   movq (8 * j)(%rdi), %rdi
-  mov %eax, (8 + 4 * j)(%r12)
-# TODO: missing stoi and store xD
+  call utils_stoi
+  mov %eax, (8 + 4 * j)(%r12) # region->presents[j] = atoi(amounts[j])
   1:
+  .set j,j+1
   .endr
+  2:
 
   movq -40(%rbp), %rdi
   movq -48(%rbp), %rsi
