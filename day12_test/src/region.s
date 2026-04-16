@@ -9,7 +9,7 @@ delimiter_space:
   .asciz " "
 .section .text
 
-.extern split
+.extern string_utility_split
 .extern utils_stoi
 .extern string_utility_strlen
 .extern cleanup
@@ -39,7 +39,7 @@ get_region:
   mov  $2, %rcx
   movq $0, -24(%rbp) # local2 = char** left_right
   leaq -24(%rbp), %r8
-  call split
+  call string_utility_split
   # discard rax
   movq -24(%rbp), %rdi
   movq 0(%rdi), %rdi
@@ -51,7 +51,7 @@ get_region:
   mov  $1, %rcx
   movq $0, -32(%rbp) # dimensions
   leaq -32(%rbp), %r8
-  call split
+  call string_utility_split
 
   movq -32(%rbp), %rdi
   movq 0(%rdi), %rdi
@@ -73,7 +73,7 @@ get_region:
   mov  $1, %rcx
   movq $0, -40(%rbp)   #  amounts
   leaq -40(%rbp), %r8
-  call split
+  call string_utility_split
   mov %rax, -48(%rbp) # amounts_length
 
   .set j,0

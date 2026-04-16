@@ -70,11 +70,9 @@ void string_utility_copy(const char *input, long amount, char *dest);
 long string_utility_split(const char *input, long input_length,
                           const char *delimiter, long delimiter_size,
                           char ***parts);
+/*
 long split(const char *input, long input_length, const char *delimiter,
            long delimiter_size, char ***parts) {
-  return string_utility_split(input, input_length, delimiter, delimiter_size,
-                              parts);
-  /*
   if (!input)
     return 0;
   long occurences =
@@ -91,8 +89,8 @@ long split(const char *input, long input_length, const char *delimiter,
     input_temp_ptr += amount + delimiter_size;
   }
   return occurences + 1;
-  */
 }
+*/
 
 void cleanup(char **arr, long amount) {
   return;
@@ -112,7 +110,7 @@ static void get_shapes(char **parts, Shapes *shapes) {
   for (int i = 0; i < PresentAmount; i++) {
     char **parts_part;
     long parts_part_length =
-        split(parts[i], string_utility_strlen(parts[i]), "\n", 1, &parts_part);
+        string_utility_split(parts[i], string_utility_strlen(parts[i]), "\n", 1, &parts_part);
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 3; k++) {
         (*shapes)[i][j][k] = parts_part[j + 1][k] == '#';
@@ -157,7 +155,7 @@ static void get_region(char *part, struct Region *region) {
 static long get_regions(char *regions_str, struct Region **regions) {
   char **parts;
   long region_count =
-      split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
+      string_utility_split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
   *regions = calloc(region_count, sizeof(struct Region));
   for (long i = 0; i < region_count; i++) {
     if (string_utility_strlen(parts[i]) == 0 || !parts[i]) {
@@ -219,7 +217,7 @@ static void solve_part1(const char *input, long size) {
   (void)input;
   (void)size;
   char **parts;
-  long amount = split(input, size, "\n\n", 2, &parts);
+  long amount = string_utility_split(input, size, "\n\n", 2, &parts);
   for (long i = 0; i < amount; i++) {
     printf("input: \n%s\n", parts[i]);
   }
