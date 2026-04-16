@@ -338,8 +338,8 @@ string_utility_split:
 
   movq -56(%rbp), %rdi
   movq -24(%rbp), %rdx
-  mov 0(%rdx), %rsi
-  mov 1(%rdx), %rdx
+  movzbq 0(%rdx), %rsi
+  movzbq 1(%rdx), %rdx
   call string_utility_find
   mov %rax, -72(%rbp) # amount = find(temp_input, delimiter, delimiter_size)
 
