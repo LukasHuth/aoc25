@@ -6,6 +6,7 @@
 .global utils_free_heap
 .global utils_malloc
 .global utils_stoi
+.global utils_cleanup
 
 .extern string_utility_strlen
 
@@ -298,3 +299,36 @@ utils_stoi:
   leave
   ret
 
+# rdi = char** arr
+# rsi = long amount
+utils_cleanup:
+  push %rbp
+  mov %rsp, %rbp
+  test %rdi, %rdi # if !arr
+  jz 2f # return
+  sub $8, %rsp
+  push %r12
+  
+  mov %rsi, %r12
+  mov %rdi, -8(%rbp)
+
+  1:
+  test %r12, %r12
+  jz 1f
+
+  mov -8(%rbp), %rdi
+  mov -8(%rdi, %r12, 8), %rdi
+  call free # free(arr[amount - i - 1])
+
+  dec %r12
+  jmp 1b
+  1:
+
+  mov -8(%rbp), %rdi
+  call free # free(arr)
+
+  pop %r12
+  add $8, %rsp
+  2:
+  leave
+  ret

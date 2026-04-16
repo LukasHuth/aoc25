@@ -12,7 +12,7 @@ delimiter_space:
 .extern string_utility_split
 .extern utils_stoi
 .extern string_utility_strlen
-.extern cleanup
+.extern utils_cleanup
 
 # rdi = char* part
 # rsi = struct Region *region
@@ -96,13 +96,13 @@ get_region:
 
   movq -40(%rbp), %rdi
   movq -48(%rbp), %rsi
-  call cleanup
+  call utils_cleanup
   movq -32(%rbp), %rdi
   movq $2, %rsi
-  call cleanup
+  call utils_cleanup
   movq -24(%rbp), %rdi
   movq $2, %rsi
-  call cleanup
+  call utils_cleanup
 
   mov -8(%rbp), %r12
   add $(8 * 8), %rsp

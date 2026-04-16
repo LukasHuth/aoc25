@@ -92,8 +92,10 @@ long split(const char *input, long input_length, const char *delimiter,
 }
 */
 
+void utils_cleanup(char **arr, long amount);
+/*
 void cleanup(char **arr, long amount) {
-  return;
+  utils_cleanup(arr, amount);
   if (!arr)
     return;
   for (long i = 0; i < amount; i++) {
@@ -101,6 +103,7 @@ void cleanup(char **arr, long amount) {
   }
   free(arr);
 }
+*/
 
 typedef bool Shape[3][3];
 #define PresentAmount 6
@@ -116,7 +119,7 @@ static void get_shapes(char **parts, Shapes *shapes) {
         (*shapes)[i][j][k] = parts_part[j + 1][k] == '#';
       }
     }
-    cleanup(parts_part, parts_part_length);
+    utils_cleanup(parts_part, parts_part_length);
   }
 }
 
@@ -164,7 +167,7 @@ static long get_regions(char *regions_str, struct Region **regions) {
     }
     get_region(parts[i], &((*regions)[i]));
   }
-  cleanup(parts, region_count);
+  utils_cleanup(parts, region_count);
   return region_count;
 }
 
