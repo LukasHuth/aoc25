@@ -293,12 +293,7 @@ string_utility_copy:
 string_utility_split:
   push %rbp
   mov %rsp, %rbp
-  sub $96, %rsp
-
-  # save r12, r13
-  push %r12
-  push %r13
-
+  
   test %rdi, %rdi # if !input
   jnz 1f # return 0
   xor %rax, %rax
@@ -306,6 +301,11 @@ string_utility_split:
   ret
 
 1:
+  sub $96, %rsp
+  # save r12, r13
+  push %r12
+  push %r13
+
   mov %rdi, -8(%rbp)
   mov %rsi, -16(%rbp)
   mov %rdx, -24(%rbp)
@@ -338,8 +338,8 @@ string_utility_split:
 
   movq -56(%rbp), %rdi
   movq -24(%rbp), %rdx
-  mov 0(%rdx), %rsi
-  mov 1(%rdx), %rdx
+  movzbq 0(%rdx), %rsi
+  movzbq 1(%rdx), %rdx
   call string_utility_find
   mov %rax, -72(%rbp) # amount = find(temp_input, delimiter, delimiter_size)
 
