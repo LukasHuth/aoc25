@@ -4,8 +4,12 @@
 .global string_utility_find_scalar
 .global string_utility_find
 .global string_utility_copy
+.global string_utility_split
 .section .data
 .section .text
+
+.extern string_utility_count_two_scalar
+.extern calloc
 
 #------------------------------------------------------------------------------
 # Count Scalar - Counts a Scalar in a string
@@ -272,4 +276,109 @@ string_utility_copy:
 
   pop %rcx
   vzeroupper
+  ret
+
+#------------------------------------------------------------------------------
+# String split - splits the string at a delimiter
+#------------------------------------------------------------------------------
+# Arguments:
+# rdi = char* input
+# rsi = long input_length
+# rdx = char* delimiter
+# rcx = long delimiter_size
+# r8 = char ***parts
+#------------------------------------------------------------------------------
+# Returns: amount of elements that where split into
+#------------------------------------------------------------------------------
+string_utility_split:
+  push %rbp
+  mov %rsp, %rbp
+  sub $96, %rsp
+  test %rdi, %rdi # if !input
+  jz 4f # return 0
+
+  mov %rdi, -8(%rbp)
+  mov %rsi, -16(%rbp)
+  mov %rdx, -24(%rbp)
+  mov %rcx, -32(%rbp)
+  mov %r8, -40(%rbp)
+
+  # save r12, r13
+  push %r12
+  push %r13
+
+  # rdi = input
+  xchg %rsi, %rcx # rcx = input_length
+  mov 0(%rdx), %rsi
+  mov 1(%rdx), %rdx
+  call string_utility_count_two_scalar
+  mov %rax, -48(%rbp) # occurences = count(input, input_length, delimiter, delimiter_size)
+
+  leaq 1(%rax), %rdi
+  mov $8, %rsi
+  call calloc
+  
+  mov -40(%rbp), %rdi
+  mov %rax, (%rdi) # *parts = calloc(occurences + 1, sizeof(char *))
+
+  mov -8(%rbp), %rsi
+  mov %rsi, -56(%rbp) # temp_input = input
+
+  mov -48(%rbp), %r13 # occurences
+  inc %r13
+  xor %r12, %r12 # occurence
+  1:#loop_start
+  cmpq %r13, %r12
+  jge 1f # if i >= occurences end loop
+
+  movq -56(%rbp), %rdi
+  movq -24(%rbp), %rdx
+  mov 0(%rdx), %rsi
+  mov 1(%rdx), %rdx
+  call string_utility_find
+  mov %rax, -72(%rbp) # amount = find(temp_input, delimiter, delimiter_size)
+
+  leaq 1(%rax), %rdi
+  movq $1, %rsi
+  call calloc
+  mov %rax, -80(%rbp) # data = calloc(amount + 1, sizeof(char*))
+
+  mov -56(%rbp), %rdi
+  mov -72(%rbp), %rsi
+  mov %rax, %rdx
+  call string_utility_copy # copy(temp_input, amount, data)
+
+  mov -80(%rbp), %rdi
+  mov -72(%rbp), %rdx
+  movb $0, (%rdi, %rdx) # data[amount] = '\0'
+
+  mov -40(%rbp), %rsi
+  mov (%rsi), %rsi
+  mov %rdi, (%rsi, %r12, 8) # (*parts)[occurence] = data
+
+  mov -56(%rbp), %rdi
+  add %rdx, %rdi
+  add -32(%rbp), %rdi
+  mov %rdi, -56(%rbp) # temp_input += amount + delimiter_size
+
+  inc %r12
+
+  jmp 1b
+  1:#loop_end
+
+  # return occurences + 1
+  mov %r13, %rax
+
+  jmp 1f
+  4:
+  xor %rax, %rax
+  jmp 1f
+  1:
+
+  # restore r12, r13
+  pop %r13
+  pop %r12
+
+  add $96, %rsp
+  leave
   ret

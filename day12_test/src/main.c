@@ -48,7 +48,7 @@ long string_utility_strlen(const char *input);
 void utils_panic(const char *msg, long exit_code) __attribute__((noreturn));
 static void panic(const char *msg) __attribute__((noreturn));
 static void panic(const char *msg) { utils_panic(msg, 1); }
-static long find_occurence(const char *input, long size, const char *delimiter,
+static long find_occurence(const char *input, const char *delimiter,
                            long delimiter_size) {
   if (delimiter_size <= 2)
     return string_utility_find(input, delimiter[0], delimiter[1]);
@@ -67,28 +67,31 @@ static long count_occurence(const char *input, long size, const char *delimiter,
 /* */
 
 void string_utility_copy(const char *input, long amount, char *dest);
-long split(const char *input, long size, const char *delimiter,
+long string_utility_split(const char *input, long input_length,
+                          const char *delimiter, long delimiter_size,
+                          char ***parts);
+long split(const char *input, long input_length, const char *delimiter,
            long delimiter_size, char ***parts) {
+  return string_utility_split(input, input_length, delimiter, delimiter_size,
+                              parts);
+  /*
   if (!input)
     return 0;
-  long occurences = count_occurence(input, size, delimiter, delimiter_size);
+  long occurences =
+      count_occurence(input, input_length, delimiter, delimiter_size);
   *parts = (char **)calloc(occurences + 1, sizeof(char *));
   const char *input_temp_ptr = input;
-  long remaining = size;
   for (int occurence = 0; occurence < occurences + 1; occurence++) {
-    long amount =
-        find_occurence(input_temp_ptr, remaining, delimiter, delimiter_size);
+    long amount = find_occurence(input_temp_ptr, delimiter, delimiter_size);
     char *data = (char *)calloc(amount + 1, sizeof(char));
     // strncpy(data, input_temp_ptr, amount);
     string_utility_copy(input_temp_ptr, amount, data);
     data[amount] = '\0';
     (*parts)[occurence] = data;
     input_temp_ptr += amount + delimiter_size;
-    remaining -= amount + delimiter_size;
-    if (remaining < 0)
-      remaining = 0;
   }
   return occurences + 1;
+  */
 }
 
 void cleanup(char **arr, long amount) {
@@ -204,6 +207,14 @@ static void fill_shape_area(Shapes *shapes, long *shape_area) {
   }
 }
 */
+static void print_regions(struct Region *regions, long region_count) {
+  for (long i = 0; i < region_count; i++) {
+    printf("region: %ld %dx%d %d %d %d %d %d %d\n", i, regions[i].width,
+           regions[i].height, regions[i].presents[0], regions[i].presents[1],
+           regions[i].presents[2], regions[i].presents[3],
+           regions[i].presents[4], regions[i].presents[5]);
+  }
+}
 static void solve_part1(const char *input, long size) {
   (void)input;
   (void)size;
@@ -229,12 +240,7 @@ static void solve_part1(const char *input, long size) {
   fill_shape_area(shapes, shape_area);
   free(shapes);
   long region_count = get_regions(parts[6], &regions);
-  for (long i = 0; i < region_count; i++) {
-    printf("region: %ld %dx%d %d %d %d %d %d %d\n", i, regions[i].width,
-           regions[i].height, regions[i].presents[0], regions[i].presents[1],
-           regions[i].presents[2], regions[i].presents[3],
-           regions[i].presents[4], regions[i].presents[5]);
-  }
+  print_regions(regions, region_count);
   // long possible = count_possible(regions, region_count, &shape_area);
   long possible = count_possible(regions, region_count, shape_area);
   free(regions);
