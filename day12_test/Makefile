@@ -8,7 +8,7 @@ AS_NASM := nasm
 AS_GAS := as
 
 # Flags
-CFLAGS := -g -Wall -Wextra -no-pie -Wl,-z,noexecstack
+CFLAGS := -g -Wall -Wextra -no-pie -Wl,-z,noexecstack -Wno-comment -Werror
 ASFLAGS_NASM := -f elf64
 ASFLAGS_GAS := --64
 
