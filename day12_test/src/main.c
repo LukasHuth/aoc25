@@ -3,130 +3,22 @@
 #include <stdlib.h>
 
 char *read_input(long *out_size);
-/*
-static char *read_input(long *out_size) {
-  FILE *f = fopen("input.txt", "r");
-  if (!f) {
-    fprintf(stderr, "Failed to open input.txt\n");
-    exit(1);
-  }
-      const SonicPiCode = document.getElementById('sonic-pi-code');
-      if (SonicPiCode) {
-        EsoLang.SonicPi.process(SonicPiCode);
-      }
-  fseek(f, 0, SEEK_END);
-  long size = ftell(f);
-  fseek(f, 0, SEEK_SET);
-  char *buf = malloc(size + 1);
-  if (!buf) {
-    fprintf(stderr, "Failed to allocate memory\n");
-    fclose(f);
-    exit(1);
-  }
-  size_t nread = fread(buf, 1, size, f);
-  fclose(f);
-  if ((long)nread != size) {
-    fprintf(stderr, "Failed to read input.txt\n");
-    free(buf);
-    exit(1);
-  }
-  buf[nread] = '\0';
-  *out_size = size;
-  return buf;
-}
-/* */
-
 long string_utility_count_scalar(const char *input, char delimiter, long size);
 long string_utility_count_two_scalar(const char *input, char delimiter,
                                      char delimiter2, long size);
 long string_utility_find_scalar(const char *input, char delimiter);
 long string_utility_find(const char *input, char delimiter, char delimiter2);
 long string_utility_strlen(const char *input);
-// long string_utility_count_scalar(const char *input, long size,
-// char delimiter);
-/* */
 void utils_panic(const char *msg, long exit_code) __attribute__((noreturn));
-// static void panic(const char *msg) __attribute__((noreturn));
-// static void panic(const char *msg) { utils_panic(msg, 1); }
-/*
-static long find_occurence(const char *input, const char *delimiter,
-                           long delimiter_size) {
-  if (delimiter_size <= 2)
-    return string_utility_find(input, delimiter[0], delimiter[1]);
-  panic("Can only handle delimiter with size 2 or less");
-}
-/* */
-
-/*
-static long count_occurence(const char *input, long size, const char *delimiter,
-                            long delimiter_size) {
-  if (delimiter_size <= 2)
-    return string_utility_count_two_scalar(input, delimiter[0], delimiter[1],
-                                           size);
-  panic("Can only handle delimiter with size 2 or less");
-}
-/* */
-
 void string_utility_copy(const char *input, long amount, char *dest);
 long string_utility_split(const char *input, long input_length,
                           const char *delimiter, long delimiter_size,
                           char ***parts);
-/*
-long split(const char *input, long input_length, const char *delimiter,
-           long delimiter_size, char ***parts) {
-  if (!input)
-    return 0;
-  long occurences =
-      count_occurence(input, input_length, delimiter, delimiter_size);
-  *parts = (char **)calloc(occurences + 1, sizeof(char *));
-  const char *input_temp_ptr = input;
-  for (int occurence = 0; occurence < occurences + 1; occurence++) {
-    long amount = find_occurence(input_temp_ptr, delimiter, delimiter_size);
-    char *data = (char *)calloc(amount + 1, sizeof(char));
-    // strncpy(data, input_temp_ptr, amount);
-    string_utility_copy(input_temp_ptr, amount, data);
-    data[amount] = '\0';
-    (*parts)[occurence] = data;
-    input_temp_ptr += amount + delimiter_size;
-  }
-  return occurences + 1;
-}
-*/
-
 void utils_cleanup(char **arr, long amount);
-/*
-void cleanup(char **arr, long amount) {
-  utils_cleanup(arr, amount);
-  if (!arr)
-    return;
-  for (long i = 0; i < amount; i++) {
-    free(arr[i]);
-  }
-  free(arr);
-}
-*/
-
 typedef bool Shape[3][3];
 #define PresentAmount 6
 typedef Shape Shapes[PresentAmount];
-
 void get_shapes(char **parts, Shapes *shapes);
-/*
-static void get_shapes(char **parts, Shapes *shapes) {
-  for (int i = 0; i < PresentAmount; i++) {
-    char **parts_part;
-    long parts_part_length =
-        string_utility_split(parts[i], string_utility_strlen(parts[i]), "\n", 1, &parts_part);
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        (*shapes)[i][j][k] = parts_part[j + 1][k] == '#';
-      }
-    }
-    utils_cleanup(parts_part, parts_part_length);
-  }
-}
-/* */
-
 struct Region {
   int width;
   int height;
@@ -134,119 +26,12 @@ struct Region {
 };
 
 void get_region(char *part, struct Region *region);
-/*
-static void get_region(char *part, struct Region *region) {
-  char **left_right;
-  split(part, string_utility_strlen(part), ": ", 2, &left_right);
-  char **dimensions;
-  split(left_right[0], string_utility_strlen(left_right[0]), "x", 1,
-        &dimensions);
-  region->width = atoi(dimensions[0]);
-  region->height = atoi(dimensions[1]);
-  char **amounts;
-  long amounts_length = split(
-      left_right[1], string_utility_strlen(left_right[1]), " ", 1, &amounts);
-  for (int j = 0; j < PresentAmount; j++) {
-    if (j >= amounts_length)
-      break;
-    if (string_utility_strlen(amounts[j]) == 0)
-      continue;
-    region->presents[j] = atoi(amounts[j]);
-  }
-  cleanup(amounts, amounts_length);
-  cleanup(dimensions, 2);
-  cleanup(left_right, 2);
-}
-/* */
-
 long get_regions(char *regions_str, struct Region **regions);
-/*
-static long get_regions(char *regions_str, struct Region **regions) {
-  char **parts;
-  long region_count =
-      string_utility_split(regions_str, string_utility_strlen(regions_str), "\n", 1, &parts);
-  *regions = calloc(region_count, sizeof(struct Region));
-  for (long i = 0; i < region_count; i++) {
-    if (!parts[i] || string_utility_strlen(parts[i]) == 0) {
-      region_count--;
-      continue;
-    }
-    get_region(parts[i], &((*regions)[i]));
-  }
-  utils_cleanup(parts, region_count);
-  return region_count;
-}
-/* */
-
 long get_shape_area(Shape *shape);
-/*
-static long get_shape_area(Shape *shape) {
-  return (*shape)[0][0] + (*shape)[0][1] + (*shape)[0][2] + (*shape)[1][0] +
-         (*shape)[1][1] + (*shape)[1][2] + (*shape)[2][0] + (*shape)[2][1] +
-         (*shape)[2][2];
-}
-/* */
-
 long count_possible(struct Region *regions, long region_count,
                     long shape_area[6]);
-/*
-static long count_possible(struct Region *regions, long region_count,
-                           long (shape_area)[6]) {
-  long possible = 0;
-  long possible_area, needed_area;
-  for (long i = 0; i < region_count; i++) {
-    possible_area = regions[i].width * regions[i].height;
-    needed_area = 0;
-    for (long j = 0; j < PresentAmount; j++) {
-      needed_area += regions[i].presents[j] * shape_area[j];
-    }
-    if (needed_area <= possible_area)
-      possible++;
-    printf("I: %ld needed: %ld possible: %ld\n", i, needed_area, possible_area);
-  }
-  return possible;
-}
-/* */
 void fill_shape_area(Shapes *shapes, long *shape_area);
-/*
-static void fill_shape_area(Shapes *shapes, long *shape_area) {
-  for (int i = 0; i < PresentAmount; i++) {
-    shape_area[i] = get_shape_area(&(*shapes)[i]);
-  }
-}
-*/
-/*
-static void print_regions(struct Region *regions, long region_count) {
-  for (long i = 0; i < region_count; i++) {
-    printf("region: %ld %dx%d %d %d %d %d %d %d\n", i, regions[i].width,
-           regions[i].height, regions[i].presents[0], regions[i].presents[1],
-           regions[i].presents[2], regions[i].presents[3],
-           regions[i].presents[4], regions[i].presents[5]);
-  }
-}
-/* */
 void solve_part1(const char *input, long size);
-/*
-static void solve_part1(const char *input, long size) {
-  char **parts;
-  string_utility_split(input, size, "\n\n", 2, &parts);
-  // printf("a\n");
-  Shapes *shapes = calloc(1, sizeof(Shapes));
-  get_shapes(parts, shapes);
-  // printf("b\n");
-  long shape_area[6];
-  fill_shape_area(shapes, shape_area);
-  free(shapes);
-  struct Region *regions;
-  long region_count = get_regions(parts[6], &regions);
-  // print_regions(regions, region_count);
-  // long possible = count_possible(regions, region_count, &shape_area);
-  long possible = count_possible(regions, region_count, shape_area);
-  free(regions);
-  // printf("TODO\n");
-  printf("Possible: %ld\n", possible);
-}
-/* */
 
 static void solve_part2(const char *input, long size) {
   (void)input;
