@@ -225,7 +225,8 @@ static void print_regions(struct Region *regions, long region_count) {
   }
 }
 /* */
-// void solve_part1(const char *input, long size);
+void solve_part1(const char *input, long size);
+/*
 static void solve_part1(const char *input, long size) {
   char **parts;
   string_utility_split(input, size, "\n\n", 2, &parts);

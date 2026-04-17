@@ -86,6 +86,7 @@ solve_part1:
   movq $0, -40(%rbp) # regions
   mov -24(%rbp), %rdi
   mov (6 * 8)(%rdi), %rdi
+  leaq -40(%rbp), %rsi
   call get_regions # get_regions(parts[6], &regions)
   mov %rax, -48(%rbp) # region_count
 
