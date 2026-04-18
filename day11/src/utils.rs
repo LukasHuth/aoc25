@@ -1,4 +1,7 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 pub const FILE: &str = include_str!("../input.txt");
 
@@ -24,12 +27,13 @@ impl FromStr for Device {
 }
 #[derive(Debug, PartialEq)]
 pub struct ServerRack {
-    components: Vec<Component>,
+    pub components: Vec<Component>,
     component_name_to_id: HashMap<String, usize>,
     component_id_to_name: Vec<String>,
+    allowed_components: HashSet<usize>,
 }
-#[derive(Debug, PartialEq)]
-enum Component {
+#[derive(Debug, PartialEq, Clone)]
+pub enum Component {
     Start(Vec<usize>),
     End,
     Node(Vec<usize>),
@@ -76,6 +80,7 @@ impl FromStr for ServerRack {
             })
             .collect::<Result<Vec<_>, ()>>()?;
         Ok(Self {
+            allowed_components: (0..components.len()).collect(),
             components,
             component_name_to_id,
             component_id_to_name,
@@ -83,33 +88,63 @@ impl FromStr for ServerRack {
     }
 }
 
+const VISITED_SIZE: usize = 1024 / 64;
+#[derive(Debug)]
+pub struct Visited {
+    data: [u64; VISITED_SIZE],
+}
+impl Visited {
+    pub fn new() -> Self {
+        Self {
+            data: [0; VISITED_SIZE],
+        }
+    }
+    pub fn mark(&self, pos: usize) -> Self {
+        let index = pos / 64;
+        let offset = pos & 63;
+        let mut data = self.data;
+        data[index] |= 1 << offset;
+        Self { data }
+    }
+    pub fn is_visited(&self, pos: usize) -> bool {
+        let index = pos / 64;
+        let offset = pos & 63;
+        (self.data[index] & 1 << offset) != 0
+    }
+}
 impl ServerRack {
-    pub fn find_path(&self, current: usize, end: usize, depth: usize) -> u32 {
+    pub fn find_path(&self, current: usize, end: usize, depth: usize, visited: Visited) -> u32 {
         if current == end {
             return 1;
         }
-        if depth >= self.components.len() {
+        if visited.is_visited(current) || !self.allowed_components.contains(&current) {
+            // println!("{:?} {current}", self.allowed_components);
             return 0;
         }
         match self.components[current] {
-            Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
-            Component::Start(ref connections) | Component::Node(ref connections) => connections.iter().map(|&start|Self::find_path(self, start, end, depth+1)).sum()
+            Component::End => 0,
+            // Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
+            Component::Start(ref connections) | Component::Node(ref connections) => {
+                let v = connections.iter().map(|&start|Self::find_path(self, start, end, depth+1, visited.mark(current))).sum();
+                if v > 1_000_000 {
+                    println!("v > 1_000_000: {v} depth: {depth} max_depth: {}", self.components.len());
+                }
+                v
+            }
         }
     }
     // This does not work like expected
+    /*
     #[allow(unused)]
     pub fn find_path_with_requirements(
         &self,
         start: usize,
-        req_1: usize,
-        req_1_found: bool,
-        req_2: usize,
-        req_2_found: bool,
+        denied: usize,
         end: usize,
         depth: usize,
     ) -> u32 {
         if start == end {
-            return if req_1_found && req_2_found { dbg!(1) } else { 0 };
+            return 0;
         }
         if depth >= self.components.len() {
             return 0;
@@ -117,13 +152,22 @@ impl ServerRack {
         match self.components[start] {
             Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
             Component::Start(ref connections) | Component::Node(ref connections) => connections.iter().map(|&current|
-                Self::find_path_with_requirements(self, current, req_1, req_1_found || current == req_1, req_2, req_2_found || current == req_2, end, depth+1)
+                if current == req_1 {
+                    // self.find_path(current, end, depth + 1)
+                    0
+                } else {
+                    Self::find_path_with_requirements(self, current, req_1, req_2, one_found || current == req_1 || current == req_2, end, depth+1)
+                }
             ).sum()
         }
     }
+    */
     #[allow(unused)]
     pub fn find_named(&self, name: &str) -> Option<usize> {
         self.component_name_to_id.get(name).copied()
+    }
+    pub fn get_component(&self, i: usize) -> Option<&Component> {
+        self.components.get(i)
     }
     pub fn find_start(&self) -> usize {
         self.components
@@ -132,6 +176,19 @@ impl ServerRack {
             .find(|(_, c)| matches!(c, Component::Start(_)))
             .map(|(i, _)| i)
             .expect("There should always be a start")
+    }
+
+    pub(crate) fn filter(&mut self, allowed_components: HashSet<usize>) {
+        self.allowed_components = self
+            .allowed_components
+            .iter()
+            .filter(|i| allowed_components.contains(i))
+            .copied()
+            .collect();
+    }
+
+    pub(crate) fn allow(&mut self, start: usize) {
+        self.allowed_components.insert(start);
     }
 }
 
