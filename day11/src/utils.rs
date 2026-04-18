@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     str::FromStr,
+    vec::IntoIter,
 };
 
 pub const FILE: &str = include_str!("../input.txt");
@@ -25,12 +26,12 @@ impl FromStr for Device {
         })
     }
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ServerRack {
     pub components: Vec<Component>,
-    component_name_to_id: HashMap<String, usize>,
-    component_id_to_name: Vec<String>,
-    allowed_components: HashSet<usize>,
+    pub component_name_to_id: HashMap<String, usize>,
+    pub component_id_to_name: Vec<String>,
+    pub allowed_components: HashSet<usize>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Component {
@@ -88,10 +89,60 @@ impl FromStr for ServerRack {
     }
 }
 
-const VISITED_SIZE: usize = 1024 / 64;
-#[derive(Debug)]
+const VISITED_AMOUNT: usize = 1024;
+const VISITED_SIZE: usize = VISITED_AMOUNT / 64;
+#[derive(Debug, Clone, Copy)]
 pub struct Visited {
     data: [u64; VISITED_SIZE],
+}
+pub struct VisitedIter<'a> {
+    data: &'a [u64; VISITED_SIZE],
+    current: usize,
+}
+#[test]
+fn test_visited_iter() {
+    let visited = Visited::new();
+    let iter = visited.iter();
+    assert_eq!(iter.collect::<Vec<usize>>(), vec![]);
+    let visited = Visited::new().mark(12);
+    println!("{visited:?}");
+    let iter = visited.iter();
+    assert_eq!(iter.collect::<Vec<usize>>(), vec![12]);
+}
+impl<'a> Iterator for VisitedIter<'a> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self
+            .data
+            .get(self.current / 64)
+            .is_some_and(|v| (v >> (self.current & 63)) & 1 == 0)
+        {
+            self.current += 1;
+        }
+        if self.data.len() <= self.current / 64 {
+            None
+        } else {
+            self.current += 1;
+            Some(self.current - 1)
+        }
+    }
+}
+impl std::fmt::Display for Visited {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in 0..VISITED_SIZE {
+            for offset in 0..64 {
+                f.write_fmt(format_args!("{}: ", i * 64 + offset))?;
+                if (self.data[i] & 1) << offset != 0 {
+                    f.write_str("Visited")?;
+                } else {
+                    f.write_str("Not Visited")?;
+                }
+                f.write_str("\n")?;
+            }
+        }
+        Ok(())
+    }
 }
 impl Visited {
     pub fn new() -> Self {
@@ -106,28 +157,96 @@ impl Visited {
         data[index] |= 1 << offset;
         Self { data }
     }
+    pub fn unmark(&self, pos: usize) -> Self {
+        let index = pos / 64;
+        let offset = pos & 63;
+        let mut data = self.data;
+        data[index] &= !(1 << offset);
+        Self { data }
+    }
     pub fn is_visited(&self, pos: usize) -> bool {
         let index = pos / 64;
         let offset = pos & 63;
         (self.data[index] & 1 << offset) != 0
     }
+    pub fn iter<'a>(&'a self) -> VisitedIter<'a> {
+        VisitedIter {
+            data: &self.data,
+            current: 0,
+        }
+    }
 }
 impl ServerRack {
-    pub fn find_path(&self, current: usize, end: usize, depth: usize, visited: Visited) -> u32 {
+    pub fn explore(
+        &self,
+        current: usize,
+        end: usize,
+        mut visited: Visited,
+        cache: &mut HashMap<usize, (bool, Visited)>,
+    ) -> (bool, Visited) {
+        if let Some(value) = cache.get(&current) {
+            return *value;
+        }
+        if end == current {
+            return (true, visited.mark(current));
+        }
+        if visited.is_visited(current) {
+            return (false, visited);
+        }
+        visited = visited.mark(current);
+        match self.components[current] {
+            Component::End => (false, visited),
+            Component::Start(ref connections) | Component::Node(ref connections) => {
+                let mut f = false;
+                for &connection in connections {
+                    let (found, new_visited) = self.explore(connection, end, visited, cache);
+                    if found {
+                        visited = new_visited;
+                        f = found;
+                    }
+                }
+                let v = if f {
+                    (f, visited)
+                } else {
+                    (false, visited.unmark(current))
+                };
+                cache.insert(current, v);
+                v
+            }
+        }
+    }
+    pub fn find_path(
+        &self,
+        current: usize,
+        end: usize,
+        depth: usize,
+        visited: Visited,
+        cache: &mut HashMap<usize, u32>,
+    ) -> u32 {
+        if let Some(value) = cache.get(&current) {
+            return *value;
+        }
         if current == end {
             return 1;
         }
         if visited.is_visited(current) || !self.allowed_components.contains(&current) {
-            // println!("{:?} {current}", self.allowed_components);
             return 0;
         }
         match self.components[current] {
             Component::End => 0,
-            // Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
             Component::Start(ref connections) | Component::Node(ref connections) => {
-                let v = connections.iter().map(|&start|Self::find_path(self, start, end, depth+1, visited.mark(current))).sum();
+                let v = connections
+                    .iter()
+                    .map(|&start| {
+                        Self::find_path(self, start, end, depth + 1, visited.mark(current), cache)
+                    })
+                    .sum();
+                cache.insert(current, v);
                 if v > 1_000_000 {
-                    println!("v > 1_000_000: {v} depth: {depth} max_depth: {}", self.components.len());
+                    println!(
+                        "v > 1_000_000: {v} depth: {depth} max_depth: {}",
+                        self.components.len()
+                    );
                 }
                 v
             }
@@ -178,13 +297,14 @@ impl ServerRack {
             .expect("There should always be a start")
     }
 
-    pub(crate) fn filter(&mut self, allowed_components: HashSet<usize>) {
+    pub(crate) fn filter(mut self, allowed_components: HashSet<usize>) -> Self {
         self.allowed_components = self
             .allowed_components
             .iter()
             .filter(|i| allowed_components.contains(i))
             .copied()
             .collect();
+        self
     }
 
     pub(crate) fn allow(&mut self, start: usize) {
@@ -192,6 +312,7 @@ impl ServerRack {
     }
 }
 
+#[should_panic]
 #[test]
 fn test_parsing() {
     let server_rack = FILE.parse::<ServerRack>().unwrap().components;
@@ -221,8 +342,9 @@ fn test_path_traversal() {
         ],
         component_id_to_name: Vec::new(),     // Dummy
         component_name_to_id: HashMap::new(), // Dummy
+        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
     };
-    assert_eq!(server_rack.find_path(1, 0, 0), 2);
+    assert_eq!(server_rack.find_path(1, 0, 0, Visited::new()), 2);
 }
 #[test]
 fn test_find_start() {
@@ -235,6 +357,7 @@ fn test_find_start() {
         ],
         component_id_to_name: Vec::new(),     // Dummy
         component_name_to_id: HashMap::new(), // Dummy
+        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
     };
     assert_eq!(server_rack.find_start(), 1);
 }
