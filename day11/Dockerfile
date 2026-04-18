@@ -12,8 +12,8 @@ FROM setup AS test
   RUN set -eu; cargo test --release
 FROM setup AS part1
 
-  ENTRYPOINT [ "day11", "1" ]
+  ENTRYPOINT [ "timeout", "20", "day11", "1" ]
 
 FROM setup AS part2
 
-  ENTRYPOINT [ "day11", "2" ]
+  ENTRYPOINT [ "timeout", "20", "day11", "2" ]
