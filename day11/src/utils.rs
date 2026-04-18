@@ -1,7 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     str::FromStr,
-    vec::IntoIter,
 };
 
 pub const FILE: &str = include_str!("../input.txt");
@@ -177,55 +176,74 @@ impl Visited {
     }
 }
 impl ServerRack {
-    pub fn explore(
-        &self,
-        current: usize,
-        end: usize,
-        mut visited: Visited,
-        cache: &mut HashMap<usize, (bool, Visited)>,
-    ) -> (bool, Visited) {
-        if let Some(value) = cache.get(&current) {
-            return *value;
-        }
-        if end == current {
-            return (true, visited.mark(current));
-        }
-        if visited.is_visited(current) {
-            return (false, visited);
-        }
-        visited = visited.mark(current);
-        match self.components[current] {
-            Component::End => (false, visited),
-            Component::Start(ref connections) | Component::Node(ref connections) => {
-                let mut f = false;
-                for &connection in connections {
-                    let (found, new_visited) = self.explore(connection, end, visited, cache);
-                    if found {
-                        visited = new_visited;
-                        f = found;
+    /// Returns all nodes reachable from `start` by following forward edges,
+    /// without passing through `ignore`.
+    fn forward_reachable(&self, start: usize, ignore: usize) -> HashSet<usize> {
+        let mut reachable = HashSet::new();
+        let mut queue = VecDeque::new();
+        queue.push_back(start);
+        while let Some(node) = queue.pop_front() {
+            if node == ignore || !reachable.insert(node) {
+                continue;
+            }
+            match &self.components[node] {
+                Component::End => {}
+                Component::Start(conns) | Component::Node(conns) => {
+                    for &next in conns {
+                        queue.push_back(next);
                     }
                 }
-                let v = if f {
-                    (f, visited)
-                } else {
-                    (false, visited.unmark(current))
-                };
-                cache.insert(current, v);
-                v
             }
         }
+        reachable
     }
+
+    /// Returns all nodes from which `end` is reachable by following forward
+    /// edges, without passing through `ignore`.
+    fn backward_reachable(&self, end: usize, ignore: usize) -> HashSet<usize> {
+        let n = self.components.len();
+        let mut reverse: Vec<Vec<usize>> = vec![Vec::new(); n];
+        for (i, comp) in self.components.iter().enumerate() {
+            match comp {
+                Component::End => {}
+                Component::Start(conns) | Component::Node(conns) => {
+                    for &next in conns {
+                        if next < n {
+                            reverse[next].push(i);
+                        }
+                    }
+                }
+            }
+        }
+        let mut reachable = HashSet::new();
+        let mut queue = VecDeque::new();
+        queue.push_back(end);
+        while let Some(node) = queue.pop_front() {
+            if node == ignore || !reachable.insert(node) {
+                continue;
+            }
+            for &prev in &reverse[node] {
+                queue.push_back(prev);
+            }
+        }
+        reachable
+    }
+
+    /// Returns the set of nodes that lie on at least one simple path from
+    /// `start` to `end` that does not pass through `ignore`.
+    pub fn nodes_on_path(&self, start: usize, end: usize, ignore: usize) -> HashSet<usize> {
+        let forward = self.forward_reachable(start, ignore);
+        let backward = self.backward_reachable(end, ignore);
+        forward.intersection(&backward).copied().collect()
+    }
+
     pub fn find_path(
         &self,
         current: usize,
         end: usize,
         depth: usize,
         visited: Visited,
-        cache: &mut HashMap<usize, u32>,
     ) -> u32 {
-        if let Some(value) = cache.get(&current) {
-            return *value;
-        }
         if current == end {
             return 1;
         }
@@ -235,20 +253,12 @@ impl ServerRack {
         match self.components[current] {
             Component::End => 0,
             Component::Start(ref connections) | Component::Node(ref connections) => {
-                let v = connections
+                connections
                     .iter()
-                    .map(|&start| {
-                        Self::find_path(self, start, end, depth + 1, visited.mark(current), cache)
+                    .map(|&next| {
+                        Self::find_path(self, next, end, depth + 1, visited.mark(current))
                     })
-                    .sum();
-                cache.insert(current, v);
-                if v > 1_000_000 {
-                    println!(
-                        "v > 1_000_000: {v} depth: {depth} max_depth: {}",
-                        self.components.len()
-                    );
-                }
-                v
+                    .sum()
             }
         }
     }
