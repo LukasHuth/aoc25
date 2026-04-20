@@ -1,6 +1,6 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
-use crate::utils::{Component, ServerRack, Visited, FILE};
+use crate::utils::{Component, ServerRack, FILE};
 
 pub fn part2() {
     let result = part2_int();
@@ -70,7 +70,12 @@ pub fn topo_sort(n: usize, edges: &Vec<Vec<usize>>) -> Vec<usize> {
     topo
 }
 
-pub fn count_possible_ways(start: usize, end: usize, topo: &Vec<usize>, neigbours: &Vec<Vec<usize>>) -> u64 {
+pub fn count_possible_ways(
+    start: usize,
+    end: usize,
+    topo: &Vec<usize>,
+    neigbours: &Vec<Vec<usize>>,
+) -> u64 {
     let mut dp: Vec<u64> = vec![0; topo.len()];
     dp[start] = 1;
     for &node in topo {

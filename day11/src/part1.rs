@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{
     part2::{count_possible_ways, topo_sort},
-    utils::{Component, ServerRack, Visited, FILE},
+    utils::{Component, ServerRack, FILE},
 };
 
 pub fn part1() {

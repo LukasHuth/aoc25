@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     str::FromStr,
 };
 
@@ -88,93 +88,6 @@ impl FromStr for ServerRack {
     }
 }
 
-const VISITED_AMOUNT: usize = 1024;
-const VISITED_SIZE: usize = VISITED_AMOUNT / 64;
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Visited {
-    data: [u64; VISITED_SIZE],
-}
-pub struct VisitedIter<'a> {
-    data: &'a [u64; VISITED_SIZE],
-    current: usize,
-}
-#[test]
-fn test_visited_iter() {
-    let visited = Visited::new();
-    let iter = visited.iter();
-    assert_eq!(iter.collect::<Vec<usize>>(), vec![]);
-    let visited = Visited::new().mark(12);
-    println!("{visited:?}");
-    let iter = visited.iter();
-    assert_eq!(iter.collect::<Vec<usize>>(), vec![12]);
-}
-impl<'a> Iterator for VisitedIter<'a> {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self
-            .data
-            .get(self.current / 64)
-            .is_some_and(|v| (v >> (self.current & 63)) & 1 == 0)
-        {
-            self.current += 1;
-        }
-        if self.data.len() <= self.current / 64 {
-            None
-        } else {
-            self.current += 1;
-            Some(self.current - 1)
-        }
-    }
-}
-impl std::fmt::Display for Visited {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for i in 0..VISITED_SIZE {
-            for offset in 0..64 {
-                f.write_fmt(format_args!("{}: ", i * 64 + offset))?;
-                if (self.data[i] & 1) << offset != 0 {
-                    f.write_str("Visited")?;
-                } else {
-                    f.write_str("Not Visited")?;
-                }
-                f.write_str("\n")?;
-            }
-        }
-        Ok(())
-    }
-}
-impl Visited {
-    pub fn new() -> Self {
-        Self {
-            data: [0; VISITED_SIZE],
-        }
-    }
-    pub fn mark(&self, pos: usize) -> Self {
-        let index = pos / 64;
-        let offset = pos & 63;
-        let mut data = self.data;
-        data[index] |= 1 << offset;
-        Self { data }
-    }
-    pub fn unmark(&self, pos: usize) -> Self {
-        let index = pos / 64;
-        let offset = pos & 63;
-        let mut data = self.data;
-        data[index] &= !(1 << offset);
-        Self { data }
-    }
-    pub fn is_visited(&self, pos: usize) -> bool {
-        let index = pos / 64;
-        let offset = pos & 63;
-        (self.data[index] & 1 << offset) != 0
-    }
-    pub fn iter<'a>(&'a self) -> VisitedIter<'a> {
-        VisitedIter {
-            data: &self.data,
-            current: 0,
-        }
-    }
-}
 impl ServerRack {
     #[allow(unused)]
     pub fn find_named(&self, name: &str) -> Option<usize> {
