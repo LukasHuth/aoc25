@@ -1,7 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     str::FromStr,
-    vec::IntoIter,
 };
 
 pub const FILE: &str = include_str!("../input.txt");
@@ -91,7 +90,7 @@ impl FromStr for ServerRack {
 
 const VISITED_AMOUNT: usize = 1024;
 const VISITED_SIZE: usize = VISITED_AMOUNT / 64;
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Visited {
     data: [u64; VISITED_SIZE],
 }
@@ -177,116 +176,9 @@ impl Visited {
     }
 }
 impl ServerRack {
-    pub fn explore(
-        &self,
-        current: usize,
-        end: usize,
-        mut visited: Visited,
-        cache: &mut HashMap<usize, (bool, Visited)>,
-    ) -> (bool, Visited) {
-        if let Some(value) = cache.get(&current) {
-            return *value;
-        }
-        if end == current {
-            return (true, visited.mark(current));
-        }
-        if visited.is_visited(current) {
-            return (false, visited);
-        }
-        visited = visited.mark(current);
-        match self.components[current] {
-            Component::End => (false, visited),
-            Component::Start(ref connections) | Component::Node(ref connections) => {
-                let mut f = false;
-                for &connection in connections {
-                    let (found, new_visited) = self.explore(connection, end, visited, cache);
-                    if found {
-                        visited = new_visited;
-                        f = found;
-                    }
-                }
-                let v = if f {
-                    (f, visited)
-                } else {
-                    (false, visited.unmark(current))
-                };
-                cache.insert(current, v);
-                v
-            }
-        }
-    }
-    pub fn find_path(
-        &self,
-        current: usize,
-        end: usize,
-        depth: usize,
-        visited: Visited,
-        cache: &mut HashMap<usize, u32>,
-    ) -> u32 {
-        if let Some(value) = cache.get(&current) {
-            return *value;
-        }
-        if current == end {
-            return 1;
-        }
-        if visited.is_visited(current) || !self.allowed_components.contains(&current) {
-            return 0;
-        }
-        match self.components[current] {
-            Component::End => 0,
-            Component::Start(ref connections) | Component::Node(ref connections) => {
-                let v = connections
-                    .iter()
-                    .map(|&start| {
-                        Self::find_path(self, start, end, depth + 1, visited.mark(current), cache)
-                    })
-                    .sum();
-                cache.insert(current, v);
-                if v > 1_000_000 {
-                    println!(
-                        "v > 1_000_000: {v} depth: {depth} max_depth: {}",
-                        self.components.len()
-                    );
-                }
-                v
-            }
-        }
-    }
-    // This does not work like expected
-    /*
-    #[allow(unused)]
-    pub fn find_path_with_requirements(
-        &self,
-        start: usize,
-        denied: usize,
-        end: usize,
-        depth: usize,
-    ) -> u32 {
-        if start == end {
-            return 0;
-        }
-        if depth >= self.components.len() {
-            return 0;
-        }
-        match self.components[start] {
-            Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
-            Component::Start(ref connections) | Component::Node(ref connections) => connections.iter().map(|&current|
-                if current == req_1 {
-                    // self.find_path(current, end, depth + 1)
-                    0
-                } else {
-                    Self::find_path_with_requirements(self, current, req_1, req_2, one_found || current == req_1 || current == req_2, end, depth+1)
-                }
-            ).sum()
-        }
-    }
-    */
     #[allow(unused)]
     pub fn find_named(&self, name: &str) -> Option<usize> {
         self.component_name_to_id.get(name).copied()
-    }
-    pub fn get_component(&self, i: usize) -> Option<&Component> {
-        self.components.get(i)
     }
     pub fn find_start(&self) -> usize {
         self.components
@@ -296,68 +188,5 @@ impl ServerRack {
             .map(|(i, _)| i)
             .expect("There should always be a start")
     }
-
-    pub(crate) fn filter(mut self, allowed_components: HashSet<usize>) -> Self {
-        self.allowed_components = self
-            .allowed_components
-            .iter()
-            .filter(|i| allowed_components.contains(i))
-            .copied()
-            .collect();
-        self
-    }
-
-    pub(crate) fn allow(&mut self, start: usize) {
-        self.allowed_components.insert(start);
-    }
 }
 
-#[should_panic]
-#[test]
-fn test_parsing() {
-    let server_rack = FILE.parse::<ServerRack>().unwrap().components;
-    let expected = vec![
-        Component::End,
-        Component::Node(vec![2, 9]),     // aaa
-        Component::Start(vec![3, 4]),    // you
-        Component::Node(vec![5, 6]),     // bbb
-        Component::Node(vec![5, 6, 7]),  // ccc
-        Component::Node(vec![8]),        // ddd
-        Component::Node(vec![0]),        // eee
-        Component::Node(vec![0]),        // fff
-        Component::Node(vec![0]),        // ggg
-        Component::Node(vec![4, 7, 10]), // hhh
-        Component::Node(vec![0]),        // iii
-    ];
-    assert_eq!(server_rack, expected);
-}
-#[test]
-fn test_path_traversal() {
-    let server_rack = ServerRack {
-        components: vec![
-            Component::End,
-            Component::Start(vec![2, 3]),
-            Component::Node(vec![0]),
-            Component::Node(vec![0]),
-        ],
-        component_id_to_name: Vec::new(),     // Dummy
-        component_name_to_id: HashMap::new(), // Dummy
-        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
-    };
-    assert_eq!(server_rack.find_path(1, 0, 0, Visited::new()), 2);
-}
-#[test]
-fn test_find_start() {
-    let server_rack = ServerRack {
-        components: vec![
-            Component::End,
-            Component::Start(vec![2, 3]),
-            Component::Node(vec![0]),
-            Component::Node(vec![0]),
-        ],
-        component_id_to_name: Vec::new(),     // Dummy
-        component_name_to_id: HashMap::new(), // Dummy
-        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
-    };
-    assert_eq!(server_rack.find_start(), 1);
-}
