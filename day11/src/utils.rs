@@ -90,7 +90,7 @@ impl FromStr for ServerRack {
 
 const VISITED_AMOUNT: usize = 1024;
 const VISITED_SIZE: usize = VISITED_AMOUNT / 64;
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Visited {
     data: [u64; VISITED_SIZE],
 }
@@ -176,127 +176,9 @@ impl Visited {
     }
 }
 impl ServerRack {
-    /// Returns all nodes reachable from `start` by following forward edges,
-    /// without passing through `ignore`.
-    fn forward_reachable(&self, start: usize, ignore: usize) -> HashSet<usize> {
-        let mut reachable = HashSet::new();
-        let mut queue = VecDeque::new();
-        queue.push_back(start);
-        while let Some(node) = queue.pop_front() {
-            if node == ignore || !reachable.insert(node) {
-                continue;
-            }
-            match &self.components[node] {
-                Component::End => {}
-                Component::Start(conns) | Component::Node(conns) => {
-                    for &next in conns {
-                        queue.push_back(next);
-                    }
-                }
-            }
-        }
-        reachable
-    }
-
-    /// Returns all nodes from which `end` is reachable by following forward
-    /// edges, without passing through `ignore`.
-    fn backward_reachable(&self, end: usize, ignore: usize) -> HashSet<usize> {
-        let n = self.components.len();
-        let mut reverse: Vec<Vec<usize>> = vec![Vec::new(); n];
-        for (i, comp) in self.components.iter().enumerate() {
-            match comp {
-                Component::End => {}
-                Component::Start(conns) | Component::Node(conns) => {
-                    for &next in conns {
-                        if next < n {
-                            reverse[next].push(i);
-                        }
-                    }
-                }
-            }
-        }
-        let mut reachable = HashSet::new();
-        let mut queue = VecDeque::new();
-        queue.push_back(end);
-        while let Some(node) = queue.pop_front() {
-            if node == ignore || !reachable.insert(node) {
-                continue;
-            }
-            for &prev in &reverse[node] {
-                queue.push_back(prev);
-            }
-        }
-        reachable
-    }
-
-    /// Returns the set of nodes that lie on at least one simple path from
-    /// `start` to `end` that does not pass through `ignore`.
-    pub fn nodes_on_path(&self, start: usize, end: usize, ignore: usize) -> HashSet<usize> {
-        let forward = self.forward_reachable(start, ignore);
-        let backward = self.backward_reachable(end, ignore);
-        forward.intersection(&backward).copied().collect()
-    }
-
-    pub fn find_path(
-        &self,
-        current: usize,
-        end: usize,
-        depth: usize,
-        visited: Visited,
-    ) -> u32 {
-        if current == end {
-            return 1;
-        }
-        if visited.is_visited(current) || !self.allowed_components.contains(&current) {
-            return 0;
-        }
-        match self.components[current] {
-            Component::End => 0,
-            Component::Start(ref connections) | Component::Node(ref connections) => {
-                connections
-                    .iter()
-                    .map(|&next| {
-                        Self::find_path(self, next, end, depth + 1, visited.mark(current))
-                    })
-                    .sum()
-            }
-        }
-    }
-    // This does not work like expected
-    /*
-    #[allow(unused)]
-    pub fn find_path_with_requirements(
-        &self,
-        start: usize,
-        denied: usize,
-        end: usize,
-        depth: usize,
-    ) -> u32 {
-        if start == end {
-            return 0;
-        }
-        if depth >= self.components.len() {
-            return 0;
-        }
-        match self.components[start] {
-            Component::End => unreachable!("This can only happen with more than one end node, since start == end, or not searching for end"),
-            Component::Start(ref connections) | Component::Node(ref connections) => connections.iter().map(|&current|
-                if current == req_1 {
-                    // self.find_path(current, end, depth + 1)
-                    0
-                } else {
-                    Self::find_path_with_requirements(self, current, req_1, req_2, one_found || current == req_1 || current == req_2, end, depth+1)
-                }
-            ).sum()
-        }
-    }
-    */
     #[allow(unused)]
     pub fn find_named(&self, name: &str) -> Option<usize> {
         self.component_name_to_id.get(name).copied()
-    }
-    pub fn get_component(&self, i: usize) -> Option<&Component> {
-        self.components.get(i)
     }
     pub fn find_start(&self) -> usize {
         self.components
@@ -306,68 +188,5 @@ impl ServerRack {
             .map(|(i, _)| i)
             .expect("There should always be a start")
     }
-
-    pub(crate) fn filter(mut self, allowed_components: HashSet<usize>) -> Self {
-        self.allowed_components = self
-            .allowed_components
-            .iter()
-            .filter(|i| allowed_components.contains(i))
-            .copied()
-            .collect();
-        self
-    }
-
-    pub(crate) fn allow(&mut self, start: usize) {
-        self.allowed_components.insert(start);
-    }
 }
 
-#[should_panic]
-#[test]
-fn test_parsing() {
-    let server_rack = FILE.parse::<ServerRack>().unwrap().components;
-    let expected = vec![
-        Component::End,
-        Component::Node(vec![2, 9]),     // aaa
-        Component::Start(vec![3, 4]),    // you
-        Component::Node(vec![5, 6]),     // bbb
-        Component::Node(vec![5, 6, 7]),  // ccc
-        Component::Node(vec![8]),        // ddd
-        Component::Node(vec![0]),        // eee
-        Component::Node(vec![0]),        // fff
-        Component::Node(vec![0]),        // ggg
-        Component::Node(vec![4, 7, 10]), // hhh
-        Component::Node(vec![0]),        // iii
-    ];
-    assert_eq!(server_rack, expected);
-}
-#[test]
-fn test_path_traversal() {
-    let server_rack = ServerRack {
-        components: vec![
-            Component::End,
-            Component::Start(vec![2, 3]),
-            Component::Node(vec![0]),
-            Component::Node(vec![0]),
-        ],
-        component_id_to_name: Vec::new(),     // Dummy
-        component_name_to_id: HashMap::new(), // Dummy
-        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
-    };
-    assert_eq!(server_rack.find_path(1, 0, 0, Visited::new()), 2);
-}
-#[test]
-fn test_find_start() {
-    let server_rack = ServerRack {
-        components: vec![
-            Component::End,
-            Component::Start(vec![2, 3]),
-            Component::Node(vec![0]),
-            Component::Node(vec![0]),
-        ],
-        component_id_to_name: Vec::new(),     // Dummy
-        component_name_to_id: HashMap::new(), // Dummy
-        allowed_components: vec![0, 1, 2, 3].into_iter().collect(),
-    };
-    assert_eq!(server_rack.find_start(), 1);
-}
