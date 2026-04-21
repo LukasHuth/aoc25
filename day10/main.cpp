@@ -43,9 +43,12 @@ void part2() {
   std::ifstream InputFile("input.txt");
   std::string input;
   uint32_t result = 0;
+  uint32_t temp = 0;
   while (std::getline(InputFile, input)) {
     const Machine m(input);
-    result += m.findJoltageButtons();
+    temp = m.findJoltageButtons();
+    std::cout << temp << std::endl;
+    result += temp;
   }
   std::cout << result << std::endl;
 }
@@ -107,22 +110,27 @@ uint32_t const Machine::findJoltageButtons() const {
   uint32_t depth = 0;
   while (!moves.empty()) {
     size_t level_size = moves.size();
-    ++depth;
-    while(--level_size) {
+    for (size_t i = 0; i < level_size; ++i) {
       JoltageMeter state = moves.front();
       moves.pop();
+
+      if (state == this->joltageRequirements)
+        return depth;
+
       for (uint128_t modification : this->buttonWiringJoltage) {
         auto [newState, invalid] =
-          applyModifier(state, modification, this->joltageRequirements);
+            applyModifier(state, modification, this->joltageRequirements);
+
         if (invalid)
           continue;
-        if (newState == this->joltageRequirements)
-          return depth + 1;
+
         if (!lookup_set.insert(newState).second)
           continue;
+
         moves.push(newState);
       }
     }
+    ++depth;
   }
   return -1;
 }

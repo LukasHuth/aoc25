@@ -1,89 +1,5 @@
-"use strict";
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var node_console_1 = require("node:console");
-var fs = require("node:fs");
-var process = require("node:process");
-;
-var Polygon = /** @class */ (function () {
-    function Polygon(coordinates) {
-        var e_1, _a;
-        this.tiles = new Set();
-        this.edges = new Set();
-        var lastCoord = coordinates[coordinates.length - 1];
-        try {
-            for (var coordinates_1 = __values(coordinates), coordinates_1_1 = coordinates_1.next(); !coordinates_1_1.done; coordinates_1_1 = coordinates_1.next()) {
-                var coord = coordinates_1_1.value;
-                if (coord.x == lastCoord.x) {
-                    // horizontal
-                    var start = Math.min(coord.y, lastCoord.y);
-                    var end = Math.max(coord.y, lastCoord.y);
-                    for (var y = start; y <= end; y++) {
-                        this.edges.add({ x: coord.x, y: y });
-                    }
-                }
-                else {
-                    // vertical
-                    var start = Math.min(coord.x, lastCoord.x);
-                    var end = Math.max(coord.x, lastCoord.x);
-                    for (var x = start; x <= end; x++) {
-                        this.edges.add({ x: x, y: coord.y });
-                    }
-                }
-                lastCoord = coord;
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (coordinates_1_1 && !coordinates_1_1.done && (_a = coordinates_1.return)) _a.call(coordinates_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    }
-    Polygon.prototype.isPointInside = function (point) {
-        return __spreadArray([], __read(this.edges), false).filter(function (_a) {
-            var x = _a.x, y = _a.y;
-            return y === point.y && x >= point.x;
-        }).length % 2 === 1;
-    };
-    return Polygon;
-}());
+import * as fs from 'node:fs';
+import * as process from "node:process";
 if (process.argv.length > 2 && process.argv[2] === '2') {
     part2();
 }
@@ -97,79 +13,94 @@ function part1() {
     findBiggestSquare();
 }
 function findBiggestSquare() {
-    var input = read_file();
-    var coordinates = input.trim()
+    const input = read_file();
+    const coordinates = input.trim()
         .split('\n')
-        .map(function (s) { return s.trim(); })
-        .filter(function (s) { return !!s; })
-        .map(function (line) { return line.split(','); })
-        .map(function (_a) {
-        var _b = __read(_a, 2), x = _b[0], y = _b[1];
-        return ({ x: Number(x), y: Number(y) });
-    });
-    var result = coordinates
-        .flatMap(function (start, i) {
-        return coordinates.slice(i + 1)
-            .map(function (end) { return ({ area: (Math.abs(end.x - start.x) + 1) * (Math.abs(end.y - start.y) + 1), start: start, end: end }); });
-    })
-        .sort(function (a, b) { return b.area - a.area; })[0].area;
+        .map(s => s.trim())
+        .filter(s => !!s)
+        .map(line => line.split(','))
+        .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
+    const result = coordinates
+        .flatMap((start, i) => coordinates.slice(i + 1)
+        .map(end => ({ area: (Math.abs(end.x - start.x) + 1) * (Math.abs(end.y - start.y) + 1), start, end })))
+        .sort((a, b) => b.area - a.area)[0].area;
     console.log(result);
 }
 function part2() {
-    var e_2, _a, e_3, _b;
-    var input = read_file();
-    var coordinates = input.trim()
+    const input = read_file();
+    const coordinates = input.trim()
         .split('\n')
-        .map(function (s) { return s.trim(); })
-        .filter(function (s) { return !!s; })
-        .map(function (line) { return line.split(','); })
-        .map(function (_a) {
-        var _b = __read(_a, 2), x = _b[0], y = _b[1];
-        return ({ x: Number(x), y: Number(y) });
-    });
-    var poly = new Polygon(coordinates);
-    try {
-        for (var coordinates_2 = __values(coordinates), coordinates_2_1 = coordinates_2.next(); !coordinates_2_1.done; coordinates_2_1 = coordinates_2.next()) {
-            var coord = coordinates_2_1.value;
-            (0, node_console_1.assert)(poly.isPointInside(coord), "{ x: ".concat(coord.x, ", y: ").concat(coord.y, " }"));
-        }
-    }
-    catch (e_2_1) { e_2 = { error: e_2_1 }; }
-    finally {
-        try {
-            if (coordinates_2_1 && !coordinates_2_1.done && (_a = coordinates_2.return)) _a.call(coordinates_2);
-        }
-        finally { if (e_2) throw e_2.error; }
-    }
-    var min_x = Infinity;
-    var min_y = Infinity;
-    var max_x = -Infinity;
-    var max_y = -Infinity;
-    try {
-        for (var coordinates_3 = __values(coordinates), coordinates_3_1 = coordinates_3.next(); !coordinates_3_1.done; coordinates_3_1 = coordinates_3.next()) {
-            var coord = coordinates_3_1.value;
-            if (coord.x < min_x)
-                min_x = coord.x;
-            if (coord.y < min_y)
-                min_y = coord.y;
-            if (coord.x > max_x)
-                max_x = coord.x;
-            if (coord.y > max_y)
-                max_y = coord.y;
-        }
-    }
-    catch (e_3_1) { e_3 = { error: e_3_1 }; }
-    finally {
-        try {
-            if (coordinates_3_1 && !coordinates_3_1.done && (_b = coordinates_3.return)) _b.call(coordinates_3);
-        }
-        finally { if (e_3) throw e_3.error; }
-    }
-    console.log(min_x, min_y, max_x, max_y);
-    var rects = coordinates
-        .flatMap(function (start, i) {
-        return coordinates.slice(i + 1)
-            .map(function (end) { return ({ start: start, end: end }); });
-    });
-    console.log();
+        .map(s => s.trim())
+        .filter(s => !!s)
+        .map(line => line.split(','))
+        .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
+    // console.log(coordinates);
+    const lines = coordinates.flatMap((i, index) => coordinates.slice(index + 1).filter(j => j !== i).filter(j => j.x === i.x || j.y === i.y).map(j => ({ start: i, end: j })));
+    // console.log(lines);
+    const result = coordinates
+        .flatMap((start, i) => coordinates.slice(i + 1)
+        .map(end => ({ area: (Math.abs(end.x - start.x) + 1) * (Math.abs(end.y - start.y) + 1), start, end })))
+        .filter(rect => is_valid(rect, lines))
+        .map(rect => rect.area)
+        .sort((a, b) => b - a)[0];
+    console.log(result);
+}
+function is_valid(rect, lines) {
+    if (rect.start.x === rect.end.x || rect.start.y === rect.end.y)
+        return true;
+    const corner_1 = { x: rect.end.x, y: rect.start.y };
+    const corner_2 = { x: rect.start.x, y: rect.end.y };
+    const corner_check = check.bind(undefined, lines);
+    return [corner_1, corner_2].every(corner_check);
+}
+function contains(line, point) {
+    return (line.start.x === line.end.x && line.start.x === point.x && ((line.start.y >= point.y && point.y >= line.end.y) || (line.start.y <= point.y && point.y <= line.end.y))) ||
+        (line.start.y === line.end.y && line.start.y === point.y && ((line.start.x >= point.x && point.x >= line.end.x) || (line.start.x <= point.x && point.x <= line.end.x)));
+}
+function check(lines, point) {
+    if (lines.some(line => contains(line, point)))
+        return true;
+    return check_vertical_bounds(lines, point) && check_horizontal_bounds(lines, point);
+}
+function check_vertical_bounds(lines, point) {
+    const horizontal_lines = lines.filter(is_horizontal);
+    const vertical_lines = lines.filter(is_vertical);
+    const crosses_horizontal = (line) => Math.min(line.start.y, line.end.y) <= point.y && point.y <= Math.max(line.start.y, line.end.y);
+    const has_upper_bound = () => vertical_lines
+        .filter(line => line.start.y === point.y)
+        .some(line => line.start.x <= point.x || line.end.x <= point.x) ||
+        horizontal_lines
+            .filter(line => line.start.x <= point.x)
+            .some(crosses_horizontal);
+    const has_lower_bound = () => vertical_lines
+        .filter(line => line.start.y === point.y)
+        .some(line => line.start.x >= point.x || line.end.x >= point.x) ||
+        horizontal_lines
+            .filter(line => line.start.x >= point.x)
+            .some(crosses_horizontal);
+    return has_upper_bound() && has_lower_bound();
+}
+function check_horizontal_bounds(lines, point) {
+    const horizontal_lines = lines.filter(is_horizontal);
+    const vertical_lines = lines.filter(is_vertical);
+    const crosses_vertical = (line) => Math.min(line.start.x, line.end.x) <= point.x && point.x <= Math.max(line.start.x, line.end.x);
+    const has_upper_bound = () => horizontal_lines
+        .filter(line => line.start.x === point.x)
+        .some(line => line.start.y >= point.y || line.end.y >= point.y) ||
+        vertical_lines
+            .filter(line => line.start.y >= point.y)
+            .some(crosses_vertical);
+    const has_lower_bound = () => horizontal_lines
+        .filter(line => line.start.x === point.x)
+        .some(line => line.start.y <= point.y || line.end.y <= point.y) ||
+        vertical_lines
+            .filter(line => line.start.y <= point.y)
+            .some(crosses_vertical);
+    return has_upper_bound() && has_lower_bound();
+}
+function is_vertical(line) {
+    return line.start.y === line.end.y;
+}
+function is_horizontal(line) {
+    return line.start.x === line.end.x;
 }
