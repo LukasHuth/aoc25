@@ -34,73 +34,35 @@ function part2() {
         .filter(s => !!s)
         .map(line => line.split(','))
         .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
-    // console.log(coordinates);
-    const lines = coordinates.flatMap((i, index) => coordinates.slice(index + 1).filter(j => j !== i).filter(j => j.x === i.x || j.y === i.y).map(j => ({ start: i, end: j })));
-    // console.log(lines);
+    const tiles = new Set();
+    coordinates.forEach((start, index) => {
+        const end = coordinates[(index + 1) % coordinates.length];
+        if (start.x === end.x) {
+            const [minY, maxY] = [Math.min(start.y, end.y), Math.max(start.y, end.y)];
+            for (let y = minY; y <= maxY; y++) {
+                tiles.add(coord_key({ x: start.x, y }));
+            }
+            return;
+        }
+        const [minX, maxX] = [Math.min(start.x, end.x), Math.max(start.x, end.x)];
+        for (let x = minX; x <= maxX; x++) {
+            tiles.add(coord_key({ x, y: start.y }));
+        }
+    });
     const result = coordinates
         .flatMap((start, i) => coordinates.slice(i + 1)
         .map(end => ({ area: (Math.abs(end.x - start.x) + 1) * (Math.abs(end.y - start.y) + 1), start, end })))
-        .filter(rect => is_valid(rect, lines))
+        .filter(rect => rect.start.x !== rect.end.x && rect.start.y !== rect.end.y)
+        .filter(rect => is_valid(rect, tiles))
         .map(rect => rect.area)
-        .sort((a, b) => b - a)[0];
+        .sort((a, b) => b - a)[0] ?? 0;
     console.log(result);
 }
-function is_valid(rect, lines) {
-    if (rect.start.x === rect.end.x || rect.start.y === rect.end.y)
-        return true;
-    const corner_1 = { x: rect.end.x, y: rect.start.y };
-    const corner_2 = { x: rect.start.x, y: rect.end.y };
-    const corner_check = check.bind(undefined, lines);
-    return [corner_1, corner_2].every(corner_check);
+function coord_key(coord) {
+    return `${coord.x},${coord.y}`;
 }
-function contains(line, point) {
-    return (line.start.x === line.end.x && line.start.x === point.x && ((line.start.y >= point.y && point.y >= line.end.y) || (line.start.y <= point.y && point.y <= line.end.y))) ||
-        (line.start.y === line.end.y && line.start.y === point.y && ((line.start.x >= point.x && point.x >= line.end.x) || (line.start.x <= point.x && point.x <= line.end.x)));
-}
-function check(lines, point) {
-    if (lines.some(line => contains(line, point)))
-        return true;
-    return check_vertical_bounds(lines, point) && check_horizontal_bounds(lines, point);
-}
-function check_vertical_bounds(lines, point) {
-    const horizontal_lines = lines.filter(is_horizontal);
-    const vertical_lines = lines.filter(is_vertical);
-    const crosses_horizontal = (line) => Math.min(line.start.y, line.end.y) <= point.y && point.y <= Math.max(line.start.y, line.end.y);
-    const has_upper_bound = () => vertical_lines
-        .filter(line => line.start.y === point.y)
-        .some(line => line.start.x <= point.x || line.end.x <= point.x) ||
-        horizontal_lines
-            .filter(line => line.start.x <= point.x)
-            .some(crosses_horizontal);
-    const has_lower_bound = () => vertical_lines
-        .filter(line => line.start.y === point.y)
-        .some(line => line.start.x >= point.x || line.end.x >= point.x) ||
-        horizontal_lines
-            .filter(line => line.start.x >= point.x)
-            .some(crosses_horizontal);
-    return has_upper_bound() && has_lower_bound();
-}
-function check_horizontal_bounds(lines, point) {
-    const horizontal_lines = lines.filter(is_horizontal);
-    const vertical_lines = lines.filter(is_vertical);
-    const crosses_vertical = (line) => Math.min(line.start.x, line.end.x) <= point.x && point.x <= Math.max(line.start.x, line.end.x);
-    const has_upper_bound = () => horizontal_lines
-        .filter(line => line.start.x === point.x)
-        .some(line => line.start.y >= point.y || line.end.y >= point.y) ||
-        vertical_lines
-            .filter(line => line.start.y >= point.y)
-            .some(crosses_vertical);
-    const has_lower_bound = () => horizontal_lines
-        .filter(line => line.start.x === point.x)
-        .some(line => line.start.y <= point.y || line.end.y <= point.y) ||
-        vertical_lines
-            .filter(line => line.start.y <= point.y)
-            .some(crosses_vertical);
-    return has_upper_bound() && has_lower_bound();
-}
-function is_vertical(line) {
-    return line.start.y === line.end.y;
-}
-function is_horizontal(line) {
-    return line.start.x === line.end.x;
+function is_valid(rect, tiles) {
+    const corner1 = { x: rect.start.x, y: rect.end.y };
+    const corner2 = { x: rect.end.x, y: rect.start.y };
+    return tiles.has(coord_key(corner1)) && tiles.has(coord_key(corner2));
 }
