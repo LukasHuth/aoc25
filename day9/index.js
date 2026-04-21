@@ -34,35 +34,44 @@ function part2() {
         .filter(s => !!s)
         .map(line => line.split(','))
         .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
-    const tiles = new Set();
-    coordinates.forEach((start, index) => {
-        const end = coordinates[(index + 1) % coordinates.length];
-        if (start.x === end.x) {
-            const [minY, maxY] = [Math.min(start.y, end.y), Math.max(start.y, end.y)];
-            for (let y = minY; y <= maxY; y++) {
-                tiles.add(coord_key({ x: start.x, y }));
-            }
-            return;
-        }
-        const [minX, maxX] = [Math.min(start.x, end.x), Math.max(start.x, end.x)];
-        for (let x = minX; x <= maxX; x++) {
-            tiles.add(coord_key({ x, y: start.y }));
-        }
-    });
     const result = coordinates
         .flatMap((start, i) => coordinates.slice(i + 1)
         .map(end => ({ area: (Math.abs(end.x - start.x) + 1) * (Math.abs(end.y - start.y) + 1), start, end })))
         .filter(rect => rect.start.x !== rect.end.x && rect.start.y !== rect.end.y)
-        .filter(rect => is_valid(rect, tiles))
+        .filter(rect => is_valid(rect, coordinates))
         .map(rect => rect.area)
         .sort((a, b) => b - a)[0] ?? 0;
     console.log(result);
 }
-function coord_key(coord) {
-    return `${coord.x},${coord.y}`;
+function is_on_segment(a, b, p) {
+    if (a.x === b.x && p.x === a.x) {
+        return Math.min(a.y, b.y) <= p.y && p.y <= Math.max(a.y, b.y);
+    }
+    if (a.y === b.y && p.y === a.y) {
+        return Math.min(a.x, b.x) <= p.x && p.x <= Math.max(a.x, b.x);
+    }
+    return false;
 }
-function is_valid(rect, tiles) {
-    const corner1 = { x: rect.start.x, y: rect.end.y };
-    const corner2 = { x: rect.end.x, y: rect.start.y };
-    return tiles.has(coord_key(corner1)) && tiles.has(coord_key(corner2));
+function is_inside_polygon(vertices, point) {
+    for (let i = 0; i < vertices.length; i++) {
+        if (is_on_segment(vertices[i], vertices[(i + 1) % vertices.length], point))
+            return true;
+    }
+    let crossings = 0;
+    for (let i = 0; i < vertices.length; i++) {
+        const a = vertices[i];
+        const b = vertices[(i + 1) % vertices.length];
+        if (a.x === b.x) {
+            const y1 = Math.min(a.y, b.y);
+            const y2 = Math.max(a.y, b.y);
+            if (a.x > point.x && y1 <= point.y && point.y < y2)
+                crossings++;
+        }
+    }
+    return crossings % 2 === 1;
+}
+function is_valid(rect, vertices) {
+    const corner_1 = { x: rect.start.x, y: rect.end.y };
+    const corner_2 = { x: rect.end.x, y: rect.start.y };
+    return is_inside_polygon(vertices, corner_1) && is_inside_polygon(vertices, corner_2);
 }
